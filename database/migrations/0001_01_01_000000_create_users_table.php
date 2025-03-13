@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->string('password');
-            $table->string('no_wa');
+            $table->string('no_wa')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ResponseResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -14,8 +15,8 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $users = User::select('name', 'email')->paginate(33);
-        $title = 'users';
+        $users = User::select('id','name', 'email', 'no_wa')->paginate(33);
+        $title = 'Daftar Pengguna';
         return view('users/index', compact('users', 'title'));
     }
 
@@ -44,6 +45,7 @@ class UserController extends Controller
                 ->withErrors($validator)
                 ->withInput();
         }
+
         // Create a new user
          User::create([
             'name' => $request->name,
@@ -59,32 +61,57 @@ class UserController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    //untuk api
+    public function show(User $user)
     {
-        //
+        return new ResponseResource(true, "detail user", $user, 200);
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(User $user)
     {
-        //
+        return view('users.edit', ['user' => $user]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, User $user)
     {
-        //
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'password' => 'nullable|string|min:8',
+            'no_wa' => 'nullable|string|max:15',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+    
+        $user = User::findOrFail($user->id);
+        $user->name = $request->name;
+        $user->email = $request->email;
+        if ($request->filled('password')) {
+            $user->password = $request->password;
+        }
+        $user->no_wa = $request->no_wa;
+        $user->save();
+        return redirect()->route('users.index')->with('success', 'User created successfully.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(User $user)
     {
-        //
+        try {
+            $user->delete();
+            return redirect()->route('users.index')->with('success', 'User deleted successfully.');
+        } catch (\Exception $e) {
+            return redirect()->route('users.index')->with('error', 'Failed to delete user. Please try again.');
+        }
     }
 }
