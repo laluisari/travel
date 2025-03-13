@@ -11,5 +11,4 @@ Route::get('/bus', function () {
     return view('bus/index', ['title' => 'Bus Page']);
 });
 
-
-Route::resource('users', UserController::class);
+Route::resource('users', UserController::class)->except('show');
