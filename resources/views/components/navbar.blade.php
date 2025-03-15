@@ -10,8 +10,8 @@
                     <div class="ml-10 flex items-baseline space-x-4">
                         <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" -->
                         <x-nav-link href='/' :active="request()->is('/')">Home</x-nav-link>
-                        <x-nav-link href='/bus' :active="request()->is('bus')">Bus</x-nav-link>
                         <x-nav-link href='/users' :active="request()->is('users')">Admin</x-nav-link>
+                        <x-nav-link href='/bus' :active="request()->is('bus')">Bus</x-nav-link>
                         <x-nav-link href='/contact' :active="request()->is('contact')">Contact</x-nav-link>
 
                     </div>
@@ -43,8 +43,6 @@
                             role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button"
                             tabindex="-1">
                             <!-- Active: "bg-gray-100 outline-hidden", Not Active: "" -->
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700" role="menuitem"
-                                tabindex="-1" id="user-menu-item-0">Your Profile</a>
                             <a href="#" class="block px-4 py-2 text-sm text-gray-700" role="menuitem"
                                 tabindex="-1" id="user-menu-item-1">Settings</a>
                             <a href="#" class="block px-4 py-2 text-sm text-gray-700" role="menuitem"
@@ -83,8 +81,8 @@
         <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
             <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" -->
             <x-nav-link href='/' :active="request()->is('/')">Home</x-nav-link>
+            <x-nav-link href='/users' :active="request()->is('users')">Admin</x-nav-link>
             <x-nav-link href='/bus' :active="request()->is('bus')">Bus</x-nav-link>
-            <x-nav-link href='/about' :active="request()->is('about')">About</x-nav-link>
             <x-nav-link href='/contact' :active="request()->is('contact')">Contact</x-nav-link>
 
         </div>
