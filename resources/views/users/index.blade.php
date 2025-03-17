@@ -3,7 +3,7 @@
     <div class="mb-4">
         <a href="{{ route('users.create') }}"
             class="bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-            Create User
+            Tambah Admin
         </a>
     </div>
 
