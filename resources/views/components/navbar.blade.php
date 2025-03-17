@@ -11,8 +11,10 @@
                         <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" -->
                         <x-nav-link href='/' :active="request()->is('/')">Home</x-nav-link>
                         <x-nav-link href='/users' :active="request()->is('users')">Admin</x-nav-link>
+                        <x-nav-link href='/seats' :active="request()->is('seats')">Kursi</x-nav-link>
+                        <x-nav-link href='/locations' :active="request()->is('locations')">Lokasi</x-nav-link>
+                        <x-nav-link href='/routes' :active="request()->is('routes')">Rute</x-nav-link>
                         <x-nav-link href='/bus' :active="request()->is('bus')">Bus</x-nav-link>
-                        <x-nav-link href='/contact' :active="request()->is('contact')">Contact</x-nav-link>
 
                     </div>
                 </div>
@@ -82,8 +84,10 @@
             <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" -->
             <x-nav-link href='/' :active="request()->is('/')">Home</x-nav-link>
             <x-nav-link href='/users' :active="request()->is('users')">Admin</x-nav-link>
+            <x-nav-link href='/seats' :active="request()->is('seats')">Kursi</x-nav-link>
+            <x-nav-link href='/locations' :active="request()->is('locations')">Lokasi</x-nav-link>
+            <x-nav-link href='/routes' :active="request()->is('routes')">Rute</x-nav-link>
             <x-nav-link href='/bus' :active="request()->is('bus')">Bus</x-nav-link>
-            <x-nav-link href='/contact' :active="request()->is('contact')">Contact</x-nav-link>
 
         </div>
         <div class="border-t border-gray-700 pt-4 pb-3">
@@ -111,4 +115,5 @@
             </div>
         </div>
     </div>
+
 </nav>

@@ -15,7 +15,7 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $users = User::select('id','name', 'email', 'no_wa')->paginate(33);
+        $users = User::select('id', 'name', 'email', 'no_wa')->paginate(33);
         $title = 'Daftar Pengguna';
         return view('users/index', compact('users', 'title'));
     }
@@ -25,7 +25,7 @@ class UserController extends Controller
      */
     public function create()
     {
-        return view('users/create', ['title' => 'add user']);
+        return view('users/create', ['title' => 'Tambah Admin']);
     }
 
     /**
@@ -47,7 +47,7 @@ class UserController extends Controller
         }
 
         // Create a new user
-         User::create([
+        User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => $request->password,
@@ -62,8 +62,14 @@ class UserController extends Controller
      * Display the specified resource.
      */
     //untuk api
-    public function show(User $user)
+    public function show($id)
     {
+        $user = User::find($id);
+
+        if (!$user) {
+            return new ResponseResource(false, "user not found", [], 404);
+        }
+
         return new ResponseResource(true, "detail user", $user, 200);
     }
 
@@ -86,11 +92,11 @@ class UserController extends Controller
             'password' => 'nullable|string|min:8',
             'no_wa' => 'nullable|string|max:15',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-    
+
         $user = User::findOrFail($user->id);
         $user->name = $request->name;
         $user->email = $request->email;
