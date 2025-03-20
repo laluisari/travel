@@ -44,13 +44,23 @@ class RouteController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'from_location_id' => 'required',
             'to_location_id' => 'required',
         ]);
+
+        // Validasi kombinasi unik
+        if (Route::where('from_location_id', $request->from_location_id)
+            ->where('to_location_id', $request->to_location_id)
+            ->exists()
+        ) {
+            return redirect()->back()
+                ->withErrors(['unique_combination' => 'Rute dengan titik berangkat dan titik tujuan sudah ada.'])
+                ->withInput();
+        }
 
         if ($validator->fails()) {
             return redirect()->back()
@@ -86,7 +96,6 @@ class RouteController extends Controller
     {
         $locations = Location::all();
         return view('routes.edit', ['route' => $route,  'locations' => $locations]);
-
     }
 
     /**
