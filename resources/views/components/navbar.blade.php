@@ -14,8 +14,8 @@
                         <x-nav-link href='/seats' :active="request()->is('seats')">Kursi</x-nav-link>
                         <x-nav-link href='/locations' :active="request()->is('locations')">Lokasi</x-nav-link>
                         <x-nav-link href='/routes' :active="request()->is('routes')">Rute</x-nav-link>
-                        <x-nav-link href='/bus' :active="request()->is('bus')">Bus</x-nav-link>
-
+                        <x-nav-link href='/travels' :active="request()->is('travels')">Travels</x-nav-link>
+                        <x-nav-link href='/schedules' :active="request()->is('schedules')">Jadwal</x-nav-link>
                     </div>
                 </div>
             </div>
@@ -87,7 +87,9 @@
             <x-nav-link href='/seats' :active="request()->is('seats')">Kursi</x-nav-link>
             <x-nav-link href='/locations' :active="request()->is('locations')">Lokasi</x-nav-link>
             <x-nav-link href='/routes' :active="request()->is('routes')">Rute</x-nav-link>
-            <x-nav-link href='/bus' :active="request()->is('bus')">Bus</x-nav-link>
+            <x-nav-link href='/travels' :active="request()->is('travels')">Travel</x-nav-link>
+            <x-nav-link href='/schedules' :active="request()->is('schedules')">Jadwal</x-nav-link>
+
 
         </div>
         <div class="border-t border-gray-700 pt-4 pb-3">
