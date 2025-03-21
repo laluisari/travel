@@ -40,6 +40,21 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'customer' => [
+            'driver' => 'session',
+            'provider' => 'customers', // Guard untuk pelanggan (Customer)
+        ],
+        'api' => [
+            'driver' => 'token',
+            'provider' => 'users', // Guard API untuk admin
+            'hash' => false,
+        ],
+
+        'customer_api' => [
+            'driver' => 'token',
+            'provider' => 'customers', // Guard API untuk pelanggan
+            'hash' => false,
+        ],
     ],
 
     /*
@@ -65,10 +80,10 @@ return [
             'model' => env('AUTH_MODEL', App\Models\User::class),
         ],
 
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        'customers' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Customer::class, // Model untuk pelanggan
+        ],
     ],
 
     /*
