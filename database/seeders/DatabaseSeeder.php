@@ -6,6 +6,7 @@ use App\Models\Seat;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -16,10 +17,12 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        // User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        User::create([
+            'name' => 'admin',
+            'email' => 'admin@admin.com',
+            'password' => Hash::make('password'),
+            'no_wa' => '087894521051',
+        ]);
 
         //seat
 
@@ -31,10 +34,7 @@ class DatabaseSeeder extends Seeder
 
         //Location
         $locations = [
-            'Bandung',
-            'Jakarta',
-            'Bali',
-            'Surabaya',
+    
             'Mataram',
             'Sumbawa'
         ];
