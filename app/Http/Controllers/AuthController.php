@@ -108,10 +108,10 @@ class AuthController extends Controller
     public function customerLogout(Request $request)
     {
         Auth::guard('customer')->logout(); // Logout user dari guard customer
-        $request->session()->invalidate(); // Hapus semua data sesi
-        $request->session()->regenerateToken(); // Regenerasi token CSRF untuk keamanan
 
-        return redirect()->route('customer.login')->with('success', 'You have been logged out successfully.');
+
+        return new ResponseResource(true, "Logout berhasil", null, 200);
+
     }
 
 }

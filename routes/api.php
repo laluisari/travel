@@ -40,6 +40,8 @@ Route::middleware('auth.api')->group(function () {
     Route::get('schedules', [ScheduleController::class, 'index2']);
     Route::get('schedules/{id}', [ScheduleController::class, 'show2']);
 
+    //logout
+    Route::post('/logout', [AuthController::class, 'customerLogout']);
 });
 
 
