@@ -580,6 +580,7 @@ class ComposerStaticInit88970a0117c062eed55fa8728fc43833
         'App\\Models\\TravelSeat' => __DIR__ . '/../..' . '/app/Models/TravelSeat.php',
         'App\\Models\\User' => __DIR__ . '/../..' . '/app/Models/User.php',
         'App\\Providers\\AppServiceProvider' => __DIR__ . '/../..' . '/app/Providers/AppServiceProvider.php',
+        'App\\Services\\MidtransService' => __DIR__ . '/../..' . '/app/Services/MidtransService.php',
         'App\\View\\Components\\Layout' => __DIR__ . '/../..' . '/app/View/Components/Layout.php',
         'App\\View\\Components\\Navbar' => __DIR__ . '/../..' . '/app/View/Components/Navbar.php',
         'App\\View\\Components\\navbarAdmin' => __DIR__ . '/../..' . '/app/View/Components/navbarAdmin.php',
