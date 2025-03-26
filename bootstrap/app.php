@@ -16,7 +16,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth.api' => \App\Http\Middleware\ApiAuthentication::class,
         ]);
-
         $middleware->redirectGuestsTo('/login');
     })
     ->withExceptions(function (Exceptions $exceptions) {
