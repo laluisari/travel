@@ -56,7 +56,8 @@
             <!-- Input Waktu -->
             <div class="mb-4">
                 <label for="time" class="block text-sm font-medium text-gray-700">Waktu:</label>
-                <input type="time" name="time" id="time" value="{{ old('time', $schedule->time) }}" required
+                <input type="time" name="time" id="time"
+                    value="{{ old('time', \Illuminate\Support\Str::substr($schedule->time, 0, 5)) }}" required
                     class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
             </div>
 
@@ -74,7 +75,7 @@
                     <div x-data="{ editing: false, status: '{{ $seat->pivot->status }}' }"
                         class="relative w-full p-4 py-8 text-center border rounded-md cursor-pointer {{ $statusColor }}"
                         @click="editing = true">
-                      
+
                         <!-- Tampilan default -->
                         <div x-show="!editing" x-transition>
                             <span class="font-bold"> {{ $seat->seat_number }}</span>
@@ -85,12 +86,13 @@
                         <!-- Select untuk edit status -->
                         <template x-if="editing">
                             <div
-                                class="absolute inset-0 flex flex-col justify-center items-center bg-white p-2 rounded-md shadow-lg border">
+                                class="absolute inset-0 flex flex-col justify-center items-center bg-blue-500 p-2 rounded-md shadow-lg border">
                                 <select x-model="status" name="seats[{{ $seat->seat_number }}]"
-                                    class="block w-full px-2 py-1 border rounded-md text-sm" @click.stop>
-                                    <option value="available">Available</option>
-                                    <option value="booked">Booked</option>
-                                    <option value="paid">Paid</option>
+                                    class="block w-full px-2 py-1 border rounded-md text-sm bg-blue-500 text-white"
+                                    @click.stop>
+                                    <option value="available">{{ $seat->seat_number }} | Available</option>
+                                    <option value="booked">{{ $seat->seat_number }} | Booked</option>
+                                    <option value="paid">{{ $seat->seat_number }} | Paid</option>
                                 </select>
                             </div>
                         </template>

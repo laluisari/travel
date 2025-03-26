@@ -51,7 +51,7 @@ return [
         ],
 
         'customer_api' => [
-            'driver' => 'token',
+            'driver' => 'sanctum',
             'provider' => 'customers', // Guard API untuk pelanggan
             'hash' => false,
         ],
