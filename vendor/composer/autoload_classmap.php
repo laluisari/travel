@@ -32,6 +32,7 @@ return array(
     'App\\Models\\TravelSeat' => $baseDir . '/app/Models/TravelSeat.php',
     'App\\Models\\User' => $baseDir . '/app/Models/User.php',
     'App\\Providers\\AppServiceProvider' => $baseDir . '/app/Providers/AppServiceProvider.php',
+    'App\\Services\\MidtransService' => $baseDir . '/app/Services/MidtransService.php',
     'App\\View\\Components\\Layout' => $baseDir . '/app/View/Components/Layout.php',
     'App\\View\\Components\\Navbar' => $baseDir . '/app/View/Components/Navbar.php',
     'App\\View\\Components\\navbarAdmin' => $baseDir . '/app/View/Components/navbarAdmin.php',

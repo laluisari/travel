@@ -124,6 +124,16 @@ class ScheduleController extends Controller
         return view('schedules.show', compact(['schedule', 'title']));
     }
 
+    public function show2($id)
+    {
+        $schedule = Schedule::with(['route', 'travel'])->find($id);
+
+        if (!$schedule) {
+            return redirect()->route('schedules.index')->with('error', 'Schedule not found.');
+        }
+        return new ResponseResource(true, "Detail schedule", $schedule, 200);
+    }
+
     /**
      * Show the form for editing the specified resource.
      */
@@ -324,28 +334,28 @@ class ScheduleController extends Controller
             'to' => 'required|string',   // Nama lokasi tujuan
             'date' => 'required|date_format:Y-m-d', // Format tanggal
         ]);
-    
+
         if ($validator->fails()) {
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
         }
-    
+
         // Cari route berdasarkan nama lokasi asal dan tujuan
         $route = Route::whereHas('fromLocation', function ($query) use ($request) {
-                $query->where('name', $request->query('from'));
-            })
+            $query->where('name', $request->query('from'));
+        })
             ->whereHas('toLocation', function ($query) use ($request) {
                 $query->where('name', $request->query('to'));
             })
             ->first();
-    
+
         if (!$route) {
             return new ResponseResource(false, "Route not found for the given locations.", [], 404);
         }
-    
+
         $date = $request->query('date');
-    
+
         // Query jadwal berdasarkan route dan tanggal
         $schedules = Schedule::with(['route', 'travel'])
             ->where('route_id', $route->id)
@@ -353,26 +363,26 @@ class ScheduleController extends Controller
             ->get();
 
 
-            $formattedSchedules = $schedules->map(function ($schedule) {
-                return [
-                    'id' => $schedule->id,
-                    'date' => $schedule->date,
-                    'time' => $schedule->time,
-                    'from' => $schedule->route->fromLocation->name,
-                    'to' => $schedule->route->toLocation->name,
-                    'from_location_id' =>$schedule->route->fromLocation->id,
-                    'to_location_id' =>$schedule->route->toLocation->id,
-                    'travel_id' => $schedule->travel->id,
-                    'travel_name' => $schedule->travel->name,
-                ];
-            });
-    
-    
+        $formattedSchedules = $schedules->map(function ($schedule) {
+            return [
+                'id' => $schedule->id,
+                'date' => $schedule->date,
+                'time' => $schedule->time,
+                'from' => $schedule->route->fromLocation->name,
+                'to' => $schedule->route->toLocation->name,
+                'from_location_id' => $schedule->route->fromLocation->id,
+                'to_location_id' => $schedule->route->toLocation->id,
+                'travel_id' => $schedule->travel->id,
+                'travel_name' => $schedule->travel->name,
+            ];
+        });
+
+
         // Jika tidak ada jadwal ditemukan
         if ($schedules->isEmpty()) {
             return new ResponseResource(false, "No schedules found ", [], 404);
         }
-    
+
         return new ResponseResource(true, "List of schedules", $formattedSchedules, 200);
     }
 }
