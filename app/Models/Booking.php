@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Booking extends Model
 {
     protected $guarded = ['id'];
+    protected $tabel = 'bookings';
 
     public function customer()
     {
@@ -26,5 +27,10 @@ class Booking extends Model
     public function travelSeats()
     {
         return $this->belongsToMany(TravelSeat::class, 'booking_seats', 'booking_id', 'travel_seat_id');
+    }
+
+    public function payment()
+    {
+        return $this->hasOne(Payment::class);
     }
 }
