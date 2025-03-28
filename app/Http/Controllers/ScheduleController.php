@@ -125,7 +125,7 @@ class ScheduleController extends Controller
     }
 
     public function show2($id)
-    {
+    { 
 
         $schedule = Schedule::with(['route.fromLocation', 'route.toLocation', 'travel.travel_seats'])->find($id);
 

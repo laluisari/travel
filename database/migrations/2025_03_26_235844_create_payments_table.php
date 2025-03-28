@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('booking_id')->constrained('bookings')->onDelete('cascade');
             $table->string('virtual_account')->nullable()->unique();
-            $table->string('bank')->unique();
+            $table->string('bank');
             $table->enum('status', ['paid', 'pending', 'cancel', 'failed']);
             $table->timestamps();
         });

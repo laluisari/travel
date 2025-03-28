@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 use App\Services\MidtransService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ResponseResource;
-use App\Models\Payment;
 use Illuminate\Support\Facades\Validator;
 
 class BookingController extends Controller
@@ -69,7 +70,7 @@ class BookingController extends Controller
         // Validasi double booking
         $existingBooking = Booking::where('customer_id', $customerId)
             ->where('schedule_id', $request->schedule_id)
-            ->where('status', 'pending')
+            ->where('status', 'pending')->orWhere('status', 'paid')
             ->whereHas('bookingSeats', function ($query) use ($request) {
                 $query->whereIn('travel_seat_id', $request->booking_seat_ids);
             })
@@ -202,6 +203,8 @@ class BookingController extends Controller
             $booking = Booking::where('booking_code', $orderId)->update(['status' => 'failed']);
             Payment::where('booking_id', $booking->id)->update(['status' => 'failed']);
         }
+        //log
+        Log::info('Webhook received', $request->all());
         return new ResponseResource(true, 'Webhook handled', null, 200);
     }
 }
