@@ -70,7 +70,7 @@ class BookingController extends Controller
         // Validasi double booking
         $existingBooking = Booking::where('customer_id', $customerId)
             ->where('schedule_id', $request->schedule_id)
-            ->where('status', 'pending')->orWhere('status', 'paid')
+            ->whereIn('status', ['pending', 'paid']) // Periksa status pending atau paid
             ->whereHas('bookingSeats', function ($query) use ($request) {
                 $query->whereIn('travel_seat_id', $request->booking_seat_ids);
             })
