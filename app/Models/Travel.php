@@ -14,5 +14,10 @@ class Travel extends Model
   {
       return $this->belongsToMany(Seat::class, 'travel_seats')->withPivot('status')->withTimestamps();
   }
+
+  public function travel_seats()
+  {
+      return $this->hasMany(TravelSeat::class);
+  }
   
 }

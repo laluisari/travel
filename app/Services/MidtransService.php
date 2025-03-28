@@ -17,11 +17,11 @@ class MidtransService
         Config::$isSanitized = true;
     }
 
-    public function createTransaction($booking, $bank, $travelSeats)
+    public function createTransaction($booking, $bank)
     {
         try {
             $params = [
-                'payment_type' => 'bank_transfer', 
+                'payment_type' => 'bank_transfer',
                 'transaction_details' => [
                     'order_id' => $booking->booking_code,
                     'gross_amount' => $booking->total_price
@@ -30,10 +30,16 @@ class MidtransService
                     'first_name' => $booking->customer->name,
                     'email' => $booking->customer->email,
                 ],
-                'item_details' => $this->prepareItemDetails($travelSeats),
+                'item_details' => $this->prepareItemDetails($booking),
                 'bank_transfer' => [
                     'bank' => $bank // Bank yang dipilih oleh pengguna
-                ]
+                ],
+                'expiry' => [
+                    'start_time' => date('Y-m-d H:i:s T'), // Waktu mulai
+                    'unit' => 'hours', // Satuan waktu (hours/days)
+                    'duration' => 24, // Durasi expired (contoh: 24 jam)
+                ],
+
             ];
 
             // Kirim request ke Midtrans
@@ -47,7 +53,9 @@ class MidtransService
                 'merchant_id' => $response->merchant_id,
                 'gross_amount' => $response->gross_amount,
                 'transaction_status' => $response->transaction_status,
-                'transaction_time' => $response->transaction_time
+                'transaction_time' => $response->transaction_time,
+                'expiry_time' => $response->expiry_time ?? null, // Ambil waktu expired
+
             ];
         } catch (\Exception $e) {
             Log::error('Midtrans Transaction Error: ' . $e->getMessage());
@@ -59,11 +67,11 @@ class MidtransService
         }
     }
 
-    private function prepareItemDetails($travelSeats)
+    private function prepareItemDetails($booking)
     {
         $itemDetails = [];
-    
-        foreach ($travelSeats as $travelSeat) {
+
+        foreach ($booking->travelSeats as $travelSeat) {
             $seat = $travelSeat->seat; // Mengakses detail kursi melalui travelSeat
             $itemDetails[] = [
                 'id' => $seat->id,
@@ -72,7 +80,7 @@ class MidtransService
                 'name' => 'Seat ' . $seat->name, // Nama kursi
             ];
         }
-    
+
         return $itemDetails;
     }
 
@@ -95,6 +103,4 @@ class MidtransService
             ];
         }
     }
-
-
 }

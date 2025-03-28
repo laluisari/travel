@@ -126,12 +126,27 @@ class ScheduleController extends Controller
 
     public function show2($id)
     {
-        $schedule = Schedule::with(['route', 'travel'])->find($id);
+
+        $schedule = Schedule::with(['route.fromLocation', 'route.toLocation', 'travel.travel_seats'])->find($id);
 
         if (!$schedule) {
             return redirect()->route('schedules.index')->with('error', 'Schedule not found.');
         }
-        return new ResponseResource(true, "Detail schedule", $schedule, 200);
+        return new ResponseResource(true, "Detail schedule", [
+            'id' => $schedule->id,
+            'date' => $schedule->date,
+            'time' => $schedule->time,
+            'from' => $schedule->route->fromLocation->name,
+            'to' => $schedule->route->toLocation->name,
+            'travel_name' => $schedule->travel->name,
+            'travel_seats' => $schedule->travel->travel_seats->map(function ($travelSeat) {
+                return [
+                    'seat_number' => $travelSeat->seat->seat_number, // Akses seat_number dari relasi seat
+                    'status' => $travelSeat->status, // Jika ada kolom status di tabel pivot
+                ];
+            }),
+
+        ], 200);
     }
 
     /**
@@ -332,13 +347,17 @@ class ScheduleController extends Controller
         $validator = Validator::make($request->query(), [
             'from' => 'required|string', // Nama lokasi asal
             'to' => 'required|string',   // Nama lokasi tujuan
-            'date' => 'required|date_format:Y-m-d', // Format tanggal
+            'date' => [
+                'required',
+                'date_format:Y-m-d',
+                'after_or_equal:' . now()->format('Y-m-d'), // Validasi minimal hari ini
+            ],
+        ], [
+            'date.after_or_equal' => 'Tanggal pencarian harus hari ini atau setelahnya.', // Pesan error
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
+            return new ResponseResource(false, 'Validation error', $validator->errors(), 422);
         }
 
         // Cari route berdasarkan nama lokasi asal dan tujuan

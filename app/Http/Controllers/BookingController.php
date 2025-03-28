@@ -8,6 +8,7 @@ use App\Services\MidtransService;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ResponseResource;
+use App\Models\Payment;
 use Illuminate\Support\Facades\Validator;
 
 class BookingController extends Controller
@@ -43,12 +44,14 @@ class BookingController extends Controller
     public function store(Request $request)
     {
         $customerId = auth('customer_api')->id();
+
+        // Validasi input
         $validator = Validator::make($request->all(), [
             'total_seat' => 'required|integer',
             'total_price' => 'required|numeric',
             'schedule_id' => 'required|exists:schedules,id',
-            'booking_seat_ids' => 'required|array', // Ensure booking_seat_ids is an array
-            'booking_seat_ids.*' => 'required|exists:travel_seats,id', // Validate each element in the array
+            'booking_seat_ids' => 'required|array', // Pastikan booking_seat_ids adalah array
+            'booking_seat_ids.*' => 'required|exists:travel_seats,id', // Validasi setiap elemen array
             'bank' => 'required|in:bri,bca,mandiri,bni,permata' // Validasi bank yang didukung
         ], [
             'schedule_id.required' => 'Schedule ID is required',
@@ -60,11 +63,32 @@ class BookingController extends Controller
         ]);
 
         if ($validator->fails()) {
-           return new ResponseResource(false, 'Validation error', $validator->errors(), 422);
+            return new ResponseResource(false, 'Validation error', $validator->errors(), 422);
         }
 
+        // Validasi double booking
+        $existingBooking = Booking::where('customer_id', $customerId)
+            ->where('schedule_id', $request->schedule_id)
+            ->where('status', 'pending')
+            ->whereHas('bookingSeats', function ($query) use ($request) {
+                $query->whereIn('travel_seat_id', $request->booking_seat_ids);
+            })
+            ->first();
+
+        if ($existingBooking) {
+            $payment = Payment::where('booking_id', $existingBooking->id)->first();
+            return new ResponseResource(
+                false,
+                'You already have a pending booking for the selected seats.',
+                ['bank' => $payment->bank, 'va' => $payment->virtual_account, 'status' => $payment->status],
+                422
+            );
+        }
+
+        DB::beginTransaction(); // Mulai transaksi database
+
         try {
-            DB::beginTransaction();
+            // Buat data booking
             $booking = Booking::create([
                 'booking_code' => bookingCode($customerId),
                 'customer_id' => $customerId,
@@ -79,36 +103,45 @@ class BookingController extends Controller
                     'travel_seat_id' => $travelSeatId,
                 ]);
             }
-            $travelSeats = $booking->travelSeats()->get();
 
-            $midtransResponse = $this->midtransService->createTransaction($booking, $request->bank, $travelSeats);
+            $midtransResponse = $this->midtransService->createTransaction($booking, $request->bank);
 
             if ($midtransResponse['success']) {
                 $booking->update([
                     'midtrans_transaction_id' => $midtransResponse['transaction_id']
                 ]);
-                return new ResponseResource(true, 'Booking created successfully', [
-                    'booking' => $booking,
-                    'payment' => [
-                        'transaction_id' => $midtransResponse['transaction_id'],
-                        'va_numbers' => $midtransResponse['va_numbers'],
-                        'bank' => $midtransResponse['bank'] ?? null,
-                        'gross_amount' => $midtransResponse['gross_amount'],
-                        'transaction_status' => $midtransResponse['transaction_status'],
-                        'transaction_time' => $midtransResponse['transaction_time']
-                    ]
-                ], 201);
+
+                $payment = Payment::create([
+                    'booking_id' => $booking->id,
+                    'virtual_account' => $midtransResponse['va_numbers'][0]->va_number,
+                    'bank' => $midtransResponse['va_numbers'][0]->bank,
+                    'status' => 'pending'
+                ]);
+
                 DB::commit();
+
+                return new ResponseResource(true, 'Booking created successfully', [
+                    'booking_code' => $booking->booking_code,
+                    'va_numbers' => $midtransResponse['va_numbers'],
+                    'transaction_status' => $midtransResponse['transaction_status'],
+                    'transaction_time' => $midtransResponse['transaction_time'],
+                    'transaction_id' => $midtransResponse['transaction_id'],
+                    'gross_amount' => $midtransResponse['gross_amount'],
+                    'expiry_time' => $midtransResponse['expiry_time'],
+                ], 201);
             } else {
+                // Hapus booking jika transaksi gagal
                 $booking->delete();
+                DB::rollBack(); // Rollback transaksi jika Midtrans gagal
+
                 return new ResponseResource(false, 'Failed to create booking', $midtransResponse, 500);
             }
         } catch (\Exception $e) {
-            DB::rollBack();
+            DB::rollBack(); // Rollback transaksi jika terjadi exception
             return new ResponseResource(false, 'Failed to create booking', $e->getMessage(), 500);
         }
     }
-    
+
     // Tambahan method untuk mengecek status transaksi
     public function checkPaymentStatus($bookingCode)
     {
@@ -157,16 +190,18 @@ class BookingController extends Controller
 
         $transactionStatus = $notification->transaction_status;
         $orderId = $notification->order_id;
- 
+
         // Update status transaksi di database
         if ($transactionStatus == 'settlement') {
-            Booking::where('booking_code', $orderId)->update(['status' => 'paid']);
+            $booking = Booking::where('booking_code', $orderId)->update(['status' => 'paid']);
+            Payment::where('booking_id', $booking->id)->update(['status' => 'paid']);
         } elseif ($transactionStatus == 'pending') {
-            Booking::where('booking_code', $orderId)->update(['status' => 'pending']);
+            $booking = Booking::where('booking_code', $orderId)->update(['status' => 'pending']);
+            Payment::where('booking_id', $booking->id)->update(['status' => 'pending']);
         } elseif ($transactionStatus == 'expire' || $transactionStatus == 'cancel') {
-            Booking::where('booking_code', $orderId)->update(['status' => 'failed']);
+            $booking = Booking::where('booking_code', $orderId)->update(['status' => 'failed']);
+            Payment::where('booking_id', $booking->id)->update(['status' => 'failed']);
         }
-
-        return response()->json(['message' => 'Webhook handled successfully']);
+        return new ResponseResource(true, 'Webhook handled', null, 200);
     }
 }
