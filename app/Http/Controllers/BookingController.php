@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ResponseResource;
+use App\Models\TravelSeat;
 use Illuminate\Support\Facades\Validator;
 
 class BookingController extends Controller
@@ -24,11 +25,44 @@ class BookingController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
+    {
+        $query = Booking::with('customer', 'schedule');
+
+        $q = $request->input('q');
+        if ($q) {
+            $query->where(function ($query) use ($q) {
+                $query->where('booking_code', 'like', "%$q%")
+                    ->orWhereHas('customer', function ($subQuery) use ($q) {
+                        $subQuery->where('name', 'like', "%$q%")
+                            ->orWhere('email', 'like', "%$q%");
+                    })
+                    ->orWhereHas('schedule.route.fromLocation', function ($subQuery) use ($q) {
+                        $subQuery->where('name', 'like', "%$q%");
+                    })
+                    ->orWhereHas('schedule.route.toLocation', function ($subQuery) use ($q) {
+                        $subQuery->where('name', 'like', "%$q%");
+                    });
+            });
+        }
+
+        $bookings = $query->paginate(33);
+
+        $title = 'Booking List';
+
+        return view('bookings.index', compact(['bookings', 'title']));
+    }
+
+    public function index2()
     {
         $bookings = Booking::with('customer', 'schedule')->paginate(33);
 
-        return new ResponseResource(true, "List of bookings", $bookings, 200);
+        return new ResponseResource(
+            true,
+            "List of bookings",
+            \App\Http\Resources\BookingResource::collection($bookings),
+            200
+        );
     }
 
     /**
@@ -103,6 +137,8 @@ class BookingController extends Controller
                 $booking->bookingSeats()->create([
                     'travel_seat_id' => $travelSeatId,
                 ]);
+                $travelSeat = TravelSeat::where('schedule_id', $booking->schedule_id)->where('id', $travelSeatId)->first();
+                $travelSeat->update(['status' => 'booked']);
             }
 
             $midtransResponse = $this->midtransService->createTransaction($booking, $request->bank);
@@ -196,12 +232,25 @@ class BookingController extends Controller
         if ($transactionStatus == 'settlement') {
             $booking = Booking::where('booking_code', $orderId)->update(['status' => 'paid']);
             Payment::where('booking_id', $booking->id)->update(['status' => 'paid']);
+            $travelSeats = TravelSeat::where('schedule_id', $booking->schedule_id)->where('id', $booking->bookingSeats->pluck('travel_seat_id'))->get();
+            foreach ($travelSeats as $travelSeat) {
+                $travelSeat->update(['status' => 'paid']);
+            }
+
         } elseif ($transactionStatus == 'pending') {
             $booking = Booking::where('booking_code', $orderId)->update(['status' => 'pending']);
             Payment::where('booking_id', $booking->id)->update(['status' => 'pending']);
+            $travelSeats = TravelSeat::where('schedule_id', $booking->schedule_id)->where('id', $booking->bookingSeats->pluck('travel_seat_id'))->get();
+            foreach ($travelSeats as $travelSeat) {
+                $travelSeat->update(['status' => 'booked']);
+            }
         } elseif ($transactionStatus == 'expire' || $transactionStatus == 'cancel') {
             $booking = Booking::where('booking_code', $orderId)->update(['status' => 'failed']);
             Payment::where('booking_id', $booking->id)->update(['status' => 'failed']);
+            $travelSeats = TravelSeat::where('schedule_id', $booking->schedule_id)->where('id', $booking->bookingSeats->pluck('travel_seat_id'))->get();
+            foreach ($travelSeats as $travelSeat) {
+                $travelSeat->update(['status' => 'available']);
+            }
         }
         //log
         Log::info('Webhook received', $request->all());

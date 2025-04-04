@@ -13,8 +13,18 @@ class Schedule extends Model
         return $this->belongsTo(Travel::class);
     }
 
-   public function route(){
+    public function route()
+    {
         return $this->belongsTo(Route::class);
     }
 
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
+    }
+    
+    public function travelSeats()
+    {
+        return $this->hasMany(TravelSeat::class);
+    }
 }
