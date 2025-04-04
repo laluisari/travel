@@ -6,6 +6,7 @@ use App\Http\Controllers\SeatController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RouteController;
 use App\Http\Controllers\TravelController;
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ScheduleController;
 
@@ -24,6 +25,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('schedules', ScheduleController::class);
     Route::get('/view_generate_schedule', [ScheduleController::class, 'view_generate_schedule'])->name('view_generate_schedule');
     Route::post('generate_schedule_by_month', [ScheduleController::class, 'generate_schedule_by_month'])->name('generate_schedule_by_month');
+
+    Route::resource('bookings', BookingController::class)->except('show');
 });
 
 

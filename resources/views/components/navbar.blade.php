@@ -16,6 +16,7 @@
                         <x-nav-link href='/routes' :active="request()->is('routes')">Rute</x-nav-link>
                         <x-nav-link href='/travels' :active="request()->is('travels')">Travels</x-nav-link>
                         <x-nav-link href='/schedules' :active="request()->is('schedules')">Jadwal</x-nav-link>
+                        <x-nav-link href='/bookings' :active="request()->is('bookings')">Pesanan</x-nav-link>
                     </div>
                 </div>
             </div>
@@ -92,6 +93,8 @@
             <x-nav-link href='/routes' :active="request()->is('routes')">Rute</x-nav-link>
             <x-nav-link href='/travels' :active="request()->is('travels')">Travel</x-nav-link>
             <x-nav-link href='/schedules' :active="request()->is('schedules')">Jadwal</x-nav-link>
+            <x-nav-link href='/bookings' :active="request()->is('bookings')">Pesanan</x-nav-link>
+
 
 
         </div>

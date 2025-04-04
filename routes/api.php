@@ -47,15 +47,16 @@ Route::middleware('auth.api')->group(function () {
     //logout
     Route::post('/logout', [AuthController::class, 'customerLogout']);
 
-    Route::resource('bookings', BookingController::class);
+    //booking
+    Route::post('bookings', [BookingController::class, 'store']);
     
     //payment
-    
     Route::get('history_payment_customer', [PaymentController::class, 'history_payment_customer']);
     
 });
 Route::post('/midtrans/webhook', [BookingController::class, 'handleWebhook']);
 
+Route::get('bookings', [BookingController::class, 'index2']);
 
 Route::post('/login', [AuthController::class, 'customerLogin']);
 Route::post('/register', [AuthController::class, 'customerRegister']);

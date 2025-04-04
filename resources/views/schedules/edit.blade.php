@@ -62,9 +62,9 @@
             </div>
 
             <div class="grid grid-cols-3 md:grid-cols-4 gap-4">
-                @foreach ($schedule->travel->seats as $seat)
+                @foreach ($travelSeats as $seat)
                     @php
-                        $statusColor = match ($seat->pivot->status) {
+                        $statusColor = match ($seat->status) {
                             'available' => 'bg-blue-500 border-blue-500 text-white', // Warna biru dengan teks putih
                             'booked' => 'bg-orange-500 border-orange-500 text-white', // Warna oranye dengan teks putih
                             'paid' => 'bg-green-500 border-green-500 text-white', // Warna hijau dengan teks putih
@@ -72,27 +72,27 @@
                     @endphp
 
                     <!-- Wrapper setiap kursi -->
-                    <div x-data="{ editing: false, status: '{{ $seat->pivot->status }}' }"
+                    <div x-data="{ editing: false, status: '{{ $seat->status }}' }"
                         class="relative w-full p-4 py-8 text-center border rounded-md cursor-pointer {{ $statusColor }}"
                         @click="editing = true">
 
                         <!-- Tampilan default -->
                         <div x-show="!editing" x-transition>
-                            <span class="font-bold"> {{ $seat->seat_number }}</span>
+                            <span class="font-bold"> {{ $seat->seat->seat_number }}</span>
                             <br>
-                            <span class="text-sm">{{ ucfirst($seat->pivot->status) }}</span>
+                            <span class="text-sm">{{ ucfirst($seat->status) }}</span>
                         </div>
 
                         <!-- Select untuk edit status -->
                         <template x-if="editing">
                             <div
                                 class="absolute inset-0 flex flex-col justify-center items-center bg-blue-500 p-2 rounded-md shadow-lg border">
-                                <select x-model="status" name="seats[{{ $seat->seat_number }}]"
+                                <select x-model="status" name="seats[{{ $seat->seat->seat_number }}]"
                                     class="block w-full px-2 py-1 border rounded-md text-sm bg-blue-500 text-white"
                                     @click.stop>
-                                    <option value="available">{{ $seat->seat_number }} | Available</option>
-                                    <option value="booked">{{ $seat->seat_number }} | Booked</option>
-                                    <option value="paid">{{ $seat->seat_number }} | Paid</option>
+                                    <option value="available">{{ $seat->seat->seat_number }} | Available</option>
+                                    <option value="booked">{{ $seat->seat->seat_number }} | Booked</option>
+                                    <option value="paid">{{ $seat->seat->seat_number }} | Paid</option>
                                 </select>
                             </div>
                         </template>

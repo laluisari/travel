@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ResponseResource;
+use App\Models\TravelSeat;
 use Illuminate\Support\Facades\Validator;
 
 class ScheduleController extends Controller
@@ -99,15 +100,39 @@ class ScheduleController extends Controller
                 ->withInput();
         }
 
-        Schedule::create([
-            'date' => $request->date,
-            'time' => $request->time,
-            'route_id' => $request->route_id,
-            'travel_id' => $request->travel_id,
-        ]);
+        DB::beginTransaction();
+        try {
+            // Buat jadwal baru
+            $schedule = Schedule::create([
+                'date' => $request->date,
+                'time' => $request->time,
+                'route_id' => $request->route_id,
+                'travel_id' => $request->travel_id,
+            ]);
 
-        // Redirect to the users index page with a success message
-        return redirect()->route('schedules.index')->with('success', 'Schedule created successfully.');
+            // Ambil template travel_seats yang schedule_id = null
+            $templateSeats = TravelSeat::where('travel_id', $request->travel_id)
+                ->whereNull('schedule_id')
+                ->get();
+
+            // Buat salinan baru untuk schedule ini
+            foreach ($templateSeats as $templateSeat) {
+                TravelSeat::create([
+                    'travel_id' => $templateSeat->travel_id,
+                    'seat_id' => $templateSeat->seat_id,
+                    'status' => 'available',
+                    'schedule_id' => $schedule->id
+                ]);
+            }
+
+
+            DB::commit();
+            // Redirect to the users index page with a success message
+            return redirect()->route('schedules.index')->with('success', 'Schedule created successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -120,18 +145,30 @@ class ScheduleController extends Controller
         if (!$schedule) {
             return redirect()->route('schedules.index')->with('error', 'Schedule not found.');
         }
+        // Ambil data travel_seats yang sesuai dengan schedule_id ini
+        $travelSeats = TravelSeat::with('seat')
+            ->where('travel_id', $schedule->travel_id)
+            ->where('schedule_id', $schedule->id) // Filter berdasarkan schedule_id
+            ->get();
+
         $title = 'Detail Jadwal';
-        return view('schedules.show', compact(['schedule', 'title']));
+        return view('schedules.show', compact('schedule', 'travelSeats', 'title'));
     }
 
     public function show2($id)
-    { 
+    {
 
         $schedule = Schedule::with(['route.fromLocation', 'route.toLocation', 'travel.travel_seats'])->find($id);
 
         if (!$schedule) {
             return redirect()->route('schedules.index')->with('error', 'Schedule not found.');
         }
+        // Ambil data travel_seats yang sesuai dengan schedule_id ini
+        $travelSeats = TravelSeat::with('seat')
+            ->where('travel_id', $schedule->travel_id)
+            ->where('schedule_id', $schedule->id) // Filter berdasarkan schedule_id
+            ->get();
+
         return new ResponseResource(true, "Detail schedule", [
             'id' => $schedule->id,
             'date' => $schedule->date,
@@ -139,13 +176,13 @@ class ScheduleController extends Controller
             'from' => $schedule->route->fromLocation->name,
             'to' => $schedule->route->toLocation->name,
             'travel_name' => $schedule->travel->name,
-            'travel_seats' => $schedule->travel->travel_seats->map(function ($travelSeat) {
+            'travel_seats' => $travelSeats->map(function ($travelSeat) {
                 return [
-                    'seat_number' => $travelSeat->seat->seat_number, // Akses seat_number dari relasi seat
+                    'id' => $travelSeat->id,
+                    'seat_number' => $travelSeat->seat->seat_number ?? null, // Pastikan seat_number tidak error jika null
                     'status' => $travelSeat->status, // Jika ada kolom status di tabel pivot
                 ];
             }),
-
         ], 200);
     }
 
@@ -166,13 +203,24 @@ class ScheduleController extends Controller
             ];
         });
 
-        $schedule = Schedule::findOrFail($id);
+        $schedule = Schedule::with(['route', 'travel'])->find($id);
+
+        if (!$schedule) {
+            return redirect()->route('schedules.index')->with('error', 'Schedule not found.');
+        }
+        // Ambil data travel_seats yang sesuai dengan schedule_id ini
+        $travelSeats = TravelSeat::with('seat')
+            ->where('travel_id', $schedule->travel_id)
+            ->where('schedule_id', $schedule->id) // Filter berdasarkan schedule_id
+            ->get();
+
 
         return view('schedules.edit', [
             'title' => 'Edit Jadwal',
             'schedule' => $schedule,
             'routes' => $formattedRoutes,
             'travels' => $travels,
+            'travelSeats' => $travelSeats,
         ]);
     }
 
@@ -221,6 +269,7 @@ class ScheduleController extends Controller
                 foreach ($request->seats as $seatNumber => $status) {
                     $schedule->travel->seats()
                         ->where('seat_number', $seatNumber)
+                        ->where('schedule_id', $schedule->id)
                         ->update(['status' => $status]);
                 }
             }
@@ -285,7 +334,6 @@ class ScheduleController extends Controller
             'time.*.date_format' => 'Format waktu harus HH:mm.',
         ]);
 
-
         if ($validator->fails()) {
             return redirect()->back()
                 ->withErrors($validator)
@@ -331,7 +379,31 @@ class ScheduleController extends Controller
             // Simpan semua jadwal ke database
             if (!empty($schedules)) {
                 Schedule::insert($schedules);
+
+                // Ambil jadwal yang baru saja dibuat
+                $createdSchedules = Schedule::where('route_id', $request->route_id)
+                    ->where('travel_id', $request->travel_id)
+                    ->whereBetween('date', [$startDate->format('Y-m-d'), $startDate->endOfMonth()->format('Y-m-d')]) // Filter berdasarkan bulan
+                    ->whereIn('time', $request->time) // Filter berdasarkan waktu yang diberikan
+                    ->get();
             }
+            // Ambil template travel_seats yang schedule_id = null
+            $templateSeats = TravelSeat::where('travel_id', $request->travel_id)
+                ->whereNull('schedule_id')
+                ->get();
+
+            // Buat salinan data kursi untuk setiap jadwal yang baru dibuat
+            foreach ($createdSchedules as $schedule) {
+                foreach ($templateSeats as $templateSeat) {
+                    TravelSeat::create([
+                        'travel_id' => $templateSeat->travel_id,
+                        'seat_id' => $templateSeat->seat_id,
+                        'status' => 'available', // Status default
+                        'schedule_id' => $schedule->id, // Jadwal yang baru dibuat
+                    ]);
+                }
+            }
+
             DB::commit();
 
             return redirect()->route('schedules.index')->with('success', 'Jadwal untuk bulan ' . $month . ' berhasil dibuat!');

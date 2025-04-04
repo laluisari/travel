@@ -67,7 +67,6 @@ class TravelController extends Controller
             $travel = Travel::create([
                 'name' => $request->name,
                 'type' => $request->type,
-                'status' => 'available',
             ]);
     
             // Looping untuk menyimpan data ke tabel travel_seats
@@ -75,7 +74,8 @@ class TravelController extends Controller
                 TravelSeat::create([
                     'travel_id' => $travel->id,
                     'seat_id' => $seat_id,
-                    'status' => 'available', 
+                    'status' => 'available',
+                    'schedule_id' => null
                 ]);
             }
     
