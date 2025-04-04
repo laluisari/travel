@@ -223,37 +223,56 @@ class BookingController extends Controller
 
     public function handleWebhook(Request $request)
     {
-        $notification = new \Midtrans\Notification();
-
-        $transactionStatus = $notification->transaction_status;
-        $orderId = $notification->order_id;
-
-        // Update status transaksi di database
-        if ($transactionStatus == 'settlement') {
-            $booking = Booking::where('booking_code', $orderId)->update(['status' => 'paid']);
-            Payment::where('booking_id', $booking->id)->update(['status' => 'paid']);
-            $travelSeats = TravelSeat::where('schedule_id', $booking->schedule_id)->where('id', $booking->bookingSeats->pluck('travel_seat_id'))->get();
-            foreach ($travelSeats as $travelSeat) {
-                $travelSeat->update(['status' => 'paid']);
+        try {
+            $notification = new \Midtrans\Notification();
+    
+            $transactionStatus = $notification->transaction_status;
+            $orderId = $notification->order_id;
+    
+            // Cari booking berdasarkan booking_code
+            $booking = Booking::with('bookingSeats')->where('booking_code', $orderId)->first();
+    
+            if (!$booking) {
+                Log::error("Booking not found for order_id: {$orderId}");
+                return new ResponseResource(false, 'Booking not found', null, 404);
             }
-
-        } elseif ($transactionStatus == 'pending') {
-            $booking = Booking::where('booking_code', $orderId)->update(['status' => 'pending']);
-            Payment::where('booking_id', $booking->id)->update(['status' => 'pending']);
-            $travelSeats = TravelSeat::where('schedule_id', $booking->schedule_id)->where('id', $booking->bookingSeats->pluck('travel_seat_id'))->get();
-            foreach ($travelSeats as $travelSeat) {
-                $travelSeat->update(['status' => 'booked']);
+    
+            // Update status transaksi di database
+            if ($transactionStatus == 'settlement') {
+                $booking->update(['status' => 'paid']);
+                Payment::where('booking_id', $booking->id)->update(['status' => 'paid']);
+    
+                // Update status kursi menjadi 'paid'
+                TravelSeat::where('schedule_id', $booking->schedule_id)
+                    ->whereIn('id', $booking->bookingSeats->pluck('travel_seat_id'))
+                    ->update(['status' => 'paid']);
+            } elseif ($transactionStatus == 'pending') {
+                $booking->update(['status' => 'pending']);
+                Payment::where('booking_id', $booking->id)->update(['status' => 'pending']);
+    
+                // Update status kursi menjadi 'booked'
+                TravelSeat::where('schedule_id', $booking->schedule_id)
+                    ->whereIn('id', $booking->bookingSeats->pluck('travel_seat_id'))
+                    ->update(['status' => 'booked']);
+            } elseif ($transactionStatus == 'expire' || $transactionStatus == 'cancel') {
+                $booking->update(['status' => 'failed']);
+                Payment::where('booking_id', $booking->id)->update(['status' => 'failed']);
+    
+                // Update status kursi menjadi 'available'
+                TravelSeat::where('schedule_id', $booking->schedule_id)
+                    ->whereIn('id', $booking->bookingSeats->pluck('travel_seat_id'))
+                    ->update(['status' => 'available']);
+            } else {
+                Log::warning("Unhandled transaction status: {$transactionStatus}");
             }
-        } elseif ($transactionStatus == 'expire' || $transactionStatus == 'cancel') {
-            $booking = Booking::where('booking_code', $orderId)->update(['status' => 'failed']);
-            Payment::where('booking_id', $booking->id)->update(['status' => 'failed']);
-            $travelSeats = TravelSeat::where('schedule_id', $booking->schedule_id)->where('id', $booking->bookingSeats->pluck('travel_seat_id'))->get();
-            foreach ($travelSeats as $travelSeat) {
-                $travelSeat->update(['status' => 'available']);
-            }
+    
+            // Log webhook data
+            Log::info('Webhook received', $request->all());
+    
+            return new ResponseResource(true, 'Webhook handled successfully', null, 200);
+        } catch (\Exception $e) {
+            Log::error('Error handling webhook: ' . $e->getMessage());
+            return new ResponseResource(false, 'Failed to handle webhook', $e->getMessage(), 500);
         }
-        //log
-        Log::info('Webhook received', $request->all());
-        return new ResponseResource(true, 'Webhook handled', null, 200);
     }
 }
