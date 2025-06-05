@@ -47,7 +47,7 @@ class AuthController extends Controller
             'noWa_or_email' => 'required',
             'password' => 'required',
         ]);
-        if($validator->fails()){
+        if ($validator->fails()) {
             return new ResponseResource(false, $validator->errors()->first(), null, 422);
         }
 
@@ -71,30 +71,55 @@ class AuthController extends Controller
 
     public function customerRegister(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|min:2',
-            'email' => 'required|min:2|unique:users,email',
-            'no_wa' => 'required|min:2|unique:users,no_wa',
-            'password' => 'required',
-        ], [
-            'no_wa.unique' => 'Username sudah ada',
-            'email.unique' => 'Email sudah ada',
-        ]);
+        $checkCustomer = Customer::where('email', $request->email)
+            ->orWhere('no_wa', $request->no_wa)
+            ->first();
 
-        if ($validator->fails()) {
-            $errors = $validator->errors()->all();
-            return new  ResponseResource(false, $errors[0], null, 422);
+        if ($checkCustomer) {
+            if ($checkCustomer->type == 'offline') {
+                $checkCustomer->update([
+                    'name' => $request->name,
+                    'no_wa' => $request->no_wa,
+                    'email' => $request->email,
+                    'password' => $request->password,
+                    'type' => 'online', 
+                ]);
+
+                return new ResponseResource(true, "Data berhasil diperbarui", $checkCustomer, 200);
+            } else {
+                return new ResponseResource(false, "Anda sudah terdaftar sebagai customer", null, 422);
+            }
         }
 
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|min:2',
+            'email' => 'required|email|unique:customers,email', 
+            'no_wa' => 'required|min:2|unique:customers,no_wa', 
+            'password' => 'required|min:6',
+        ], [
+            'no_wa.unique' => 'Nomor WhatsApp sudah terdaftar',
+            'email.unique' => 'Email sudah terdaftar',
+            'password.min' => 'Password harus memiliki minimal 6 karakter',
+        ]);
+
+        // Jika validasi gagal
+        if ($validator->fails()) {
+            $errors = $validator->errors()->all();
+            return new ResponseResource(false, $errors[0], null, 422);
+        }
+
+        // Membuat user baru dan menyimpan password yang sudah di-hash
         $user = Customer::create([
             'name' => $request->name,
             'no_wa' => $request->no_wa,
             'email' => $request->email,
-            'password' => $request->password,
+            'password' => $request->password, 
+            'type' => 'online',
         ]);
 
         return new ResponseResource(true, "Data berhasil ditambahkan", $user, 200);
     }
+
 
     public function adminLogout(Request $request)
     {
@@ -111,7 +136,5 @@ class AuthController extends Controller
 
 
         return new ResponseResource(true, "Logout berhasil", null, 200);
-
     }
-
 }

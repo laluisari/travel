@@ -16,7 +16,7 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $users = User::select('id', 'name', 'email', 'no_wa')->paginate(33);
-        $title = 'Daftar Pengguna';
+        $title = 'Daftar Admin';
         return view('users/index', compact('users', 'title'));
     }
 

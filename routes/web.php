@@ -7,15 +7,20 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\RouteController;
 use App\Http\Controllers\TravelController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ScheduleController;
 
 
 Route::middleware('auth')->group(function () {
     Route::get('/', function () {
-        return view('home/index', ['title' => 'Home Page']);
+        $dashboard = new DashboardController;
+        $dataDashboard = $dashboard->refreshDataDashboard();
+        return view('home.index', [
+            'title' => 'Dashboard Page',
+            'dataDashboard' => $dataDashboard,
+        ]);
     });
-
     Route::resource('users', UserController::class)->except('show');
     Route::resource('seats', SeatController::class)->except('show');
     Route::resource('locations', LocationController::class)->except('show');
@@ -26,7 +31,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/view_generate_schedule', [ScheduleController::class, 'view_generate_schedule'])->name('view_generate_schedule');
     Route::post('generate_schedule_by_month', [ScheduleController::class, 'generate_schedule_by_month'])->name('generate_schedule_by_month');
 
-    Route::resource('bookings', BookingController::class)->except('show');
+    Route::resource('bookings', BookingController::class);
+    Route::get('search_payment', [BookingController::class, 'searchSchedule'])->name('search_payment');
+    Route::get('show_manual_pay/{id}', [BookingController::class, 'view_manual_pay'])->name('manual_pay');
+    Route::post('create_manual_pay', [BookingController::class, 'manual_pay'])->name('create_manual_pay');
 });
 
 

@@ -16,7 +16,6 @@ Route::fallback(function () {
     return response()->json(['status' => false, 'message' => 'Not Found!'], 404);
 });
 
-
 Route::middleware('auth.api')->group(function () {
     //users
     Route::get('users/{id}', [UserController::class, 'show']);
@@ -25,11 +24,9 @@ Route::middleware('auth.api')->group(function () {
     Route::get('seats', [SeatController::class, 'index2']);
     Route::get('seats/{id}', [SeatController::class, 'show']);
 
-
     //location
     Route::get('locations', [LocationController::class, 'index2']);
     Route::get('locations/{id}', [LocationController::class, 'show']);
-
 
     //Route
     Route::get('routes', [RouteController::class, 'index2']);
@@ -42,7 +39,7 @@ Route::middleware('auth.api')->group(function () {
     Route::get('schedules', [ScheduleController::class, 'index2']);
     Route::get('schedules/{id}', [ScheduleController::class, 'show2']);
     Route::get('search_schedule', [ScheduleController::class, 'search_schedule']);
-
+ 
 
     //logout
     Route::post('/logout', [AuthController::class, 'customerLogout']);

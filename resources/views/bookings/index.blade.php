@@ -19,8 +19,16 @@
         </div>
     @endif
 
+    <div class="mb-4">
+        <a href="{{ route('search_payment') }}"
+            class="bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+            Buat Pesanan
+        </a>
+    </div>
+
     <!-- Responsive Table Wrapper -->
     <div class="overflow-x-auto">
+        {{-- tambahkan tombol tambah pesanan --}}
         <table class="min-w-full table-auto bg-white shadow-md rounded-lg overflow-hidden text-sm">
             <thead>
                 <tr class="bg-gray-200 text-gray-600">
@@ -58,10 +66,11 @@
                         </td>
                         <td class="px-4 py-2">{{ $booking->schedule->travel->name }}</td>
                         <td class="px-4 py-2">
-                            <a href="{{ route('routes.edit', $booking->id) }}" class="text-blue-500 hover:text-blue-700">
-                                <i class="fas fa-pencil-alt"></i>
-                            </a> |
-                            <form action="{{ route('routes.destroy', $booking->id) }}" method="POST"
+                            <a href="{{ route('bookings.show', $booking->id) }}"
+                                class="text-blue-500 hover:text-blue-700">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {{-- <form action="{{ route('routes.destroy', $booking->id) }}" method="POST"
                                 class="inline-block">
                                 @csrf
                                 @method('DELETE')
@@ -69,7 +78,7 @@
                                     onclick="return confirm('Are you sure?')">
                                     <i class="fas fa-trash-alt"></i> <!-- Ikon Delete -->
                                 </button>
-                            </form>
+                            </form> --}}
                         </td>
                     </tr>
                 @endforeach
