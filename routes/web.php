@@ -25,7 +25,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('seats', SeatController::class)->except('show');
     Route::resource('locations', LocationController::class)->except('show');
     Route::resource('routes', RouteController::class)->except('show');
-    Route::resource('travels', TravelController::class);
+    Route::resource('travels', TravelController::class)->except('show');
     //schedules
     Route::resource('schedules', ScheduleController::class);
     Route::get('/view_generate_schedule', [ScheduleController::class, 'view_generate_schedule'])->name('view_generate_schedule');

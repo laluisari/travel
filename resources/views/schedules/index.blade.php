@@ -1,4 +1,4 @@
-<x-layout>
+<x-new-layout>
     <x-slot:title>{{ $title }}</x-slot:title>
 
     <!-- Container untuk tombol dan form -->
@@ -58,7 +58,7 @@
         <table class="min-w-full table-auto bg-white shadow-md rounded-lg overflow-hidden text-sm">
 
             <thead>
-                <tr class="bg-gray-200 text-gray-600">
+                <tr class="bg-indigo-500 text-white">
                     <th class="px-4 py-2 text-left">Travel</th>
                     <th class="px-4 py-2 text-left">Tanggal</th>
                     <th class="px-4 py-2 text-left">Jam Berangkat</th>
@@ -70,7 +70,7 @@
 
             <tbody>
                 @foreach ($schedules as $schedule)
-                    <tr class="border-b">
+                    <tr class="border-b hover:bg-gray-100">
                         <td class="px-4 py-2">{{ $schedule->travel->name }}</td>
                         <td class="px-4 py-2">{{ $schedule->date }}</td>
                         <td class="px-4 py-2">{{ $schedule->time }}</td>
@@ -105,4 +105,4 @@
     <div class="mt-4">
         {{ $schedules->links('pagination::tailwind') }}
     </div>
-</x-layout>
+</x-new-layout>

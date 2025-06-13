@@ -1,10 +1,11 @@
-<x-layout>
+<x-new-layout>
     <x-slot:title>{{ $title }}</x-slot:title>
+
     <div class="mb-4">
         <a href="{{ route('routes.create') }}"
-            class="bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+            class="inline-block bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
             Tambah Rute
-        </a> 
+        </a>
     </div>
 
     <!-- Display success message if available -->
@@ -20,8 +21,8 @@
     <!-- Responsive Table Wrapper -->
     <div class="overflow-x-auto">
         <table class="min-w-full table-auto bg-white shadow-md rounded-lg overflow-hidden text-sm">
-            <thead>
-                <tr class="bg-gray-200 text-gray-600">
+            <thead class="bg-indigo-500 text-white">
+                <tr>
                     <th class="px-4 py-2 text-left">Titik Berangkat</th>
                     <th class="px-4 py-2 text-left">Titik Tujuan</th>
                     <th class="px-4 py-2 text-left">Aksi</th> <!-- Tambahkan kolom header untuk Aksi -->
@@ -29,9 +30,9 @@
             </thead>
             <tbody>
                 @foreach ($routes as $route)
-                    <tr class="border-b">
-                        <td class="px-4 py-2">{{ $route->fromLocation->name }}</td>               
-                        <td class="px-4 py-2">{{ $route->toLocation->name }}</td>               
+                    <tr class="border-b hover:bg-gray-100">
+                        <td class="px-4 py-2">{{ $route->fromLocation->name }}</td>
+                        <td class="px-4 py-2">{{ $route->toLocation->name }}</td>
                         <td class="px-4 py-2">
                             <a href="{{ route('routes.edit', $route->id) }}" class="text-blue-500 hover:text-blue-700">
                                 <i class="fas fa-pencil-alt"></i>
@@ -55,4 +56,4 @@
     <div class="mt-4">
         {{ $routes->links('pagination::tailwind') }}
     </div>
-</x-layout>
+</x-new-layout>

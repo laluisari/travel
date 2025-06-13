@@ -93,7 +93,7 @@ class TravelController extends Controller
     public function show($id)
     {
         try {
-            $travel = Travel::with('seats')->findOrFail($id);
+            $travel = Travel::findOrFail($id);
             $title = 'Detail Travel';
             return view('travels.show', ['travel' => $travel, 'title' => $title]);
         } catch (\Exception $e) {
@@ -103,7 +103,7 @@ class TravelController extends Controller
     public function show2($id)
     {
         try {
-            $travel = Travel::with('seats')->findOrFail($id);
+            $travel = Travel::findOrFail($id);
             return new ResponseResource(true, "detail travel", new TravelResource($travel), 200);
         } catch (\Exception $e) {
             return new ResponseResource(false, $e->getMessage(), [], 500);
@@ -128,8 +128,6 @@ class TravelController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required',
             'type' => 'required',
-            'seat_ids' => 'required|array',
-            'seat_ids.*' => 'required|exists:seats,id',
         ]);
     
         if ($validator->fails()) {
@@ -149,7 +147,7 @@ class TravelController extends Controller
     
             // Update data di tabel travel_seats
             // Sinkronisasi seat_ids dengan tabel pivot travel_seats
-            $travel->seats()->sync($request->seat_ids);
+            // $travel->seats()->sync($request->seat_ids);
     
             DB::commit();
     

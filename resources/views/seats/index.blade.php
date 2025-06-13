@@ -1,8 +1,9 @@
-<x-layout>
+<x-new-layout>
     <x-slot:title>{{ $title }}</x-slot:title>
+    
     <div class="mb-4">
         <a href="{{ route('seats.create') }}"
-            class="bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+            class="inline-block bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
             Tambah Kursi
         </a> 
     </div>
@@ -21,7 +22,7 @@
     <div class="overflow-x-auto">
         <table class="min-w-full table-auto bg-white shadow-md rounded-lg overflow-hidden text-sm">
             <thead>
-                <tr class="bg-gray-200 text-gray-600">
+            <thead class="bg-indigo-500 text-white">
                     <th class="px-4 py-2 text-left">Nomor Kursi</th>
                     <th class="px-4 py-2 text-left">Harga</th>
                     <th class="px-4 py-2 text-left">Aksi</th> <!-- Tambahkan kolom header untuk Aksi -->
@@ -29,7 +30,7 @@
             </thead>
             <tbody>
                 @foreach ($seats as $seat)
-                    <tr class="border-b">
+                    <tr class="border-b hover:bg-gray-100">
                         <td class="px-4 py-2">{{ $seat->seat_number }}</td>
                         <td class="px-4 py-2">Rp.{{ number_format($seat->price, 0, ',', '.') }}</td>
                         <td class="px-4 py-2">
@@ -55,4 +56,4 @@
     <div class="mt-4">
         {{ $seats->links('pagination::tailwind') }}
     </div>
-</x-layout>
+</x-new-layout>

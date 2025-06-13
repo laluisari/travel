@@ -1,5 +1,6 @@
-<x-layout>
+<x-new-layout>
     <x-slot:title>{{ $title }}</x-slot:title>
+
     <!-- Display Validation Errors -->
     @if ($errors->any())
         <div class="mb-4">
@@ -12,7 +13,8 @@
         </div>
     @endif
 
-    <div class="max-w-7xl mx-4 bg-white p-6 rounded-lg shadow-lg">
+    <div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Tambah Admin</h2>
         <form method="POST" action="{{ route('users.store') }}">
             @csrf
             <div class="mb-4">
@@ -22,24 +24,22 @@
             
             <div class="mb-4">
                 <label for="email" class="block text-sm font-medium text-gray-700">Email:</label>
-                <input type="email" name="email" id="email" required
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <input type="email" name="email" id="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
             </div>
+            
             <div class="mb-4">
                 <label for="password" class="block text-sm font-medium text-gray-700">Password:</label>
-                <input type="password" name="password" id="password" required
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <input type="password" name="password" id="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
             </div>
+            
             <div class="mb-4">
-                <label for="no_wa" class="block text-sm font-medium text-gray-700">Phone Number:</label>
-                <input type="text" name="no_wa" id="no_wa"
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder="optional">
+                <label for="no_wa" class="block text-sm font-medium text-gray-700">No WhatsApp:</label>
+                <input type="text" name="no_wa" id="no_wa" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Optional">
             </div>
+            
             <div>
-                <button type="submit"
-                    class="w-full bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Simpan</button>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Simpan</button>
             </div>
         </form>
     </div>
-</x-layout>
+</x-new-layout>
