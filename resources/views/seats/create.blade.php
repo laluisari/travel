@@ -1,5 +1,6 @@
-<x-layout>
+<x-new-layout>
     <x-slot:title>{{ $title }}</x-slot:title>
+
     <!-- Display Validation Errors -->
     @if ($errors->any())
         <div class="mb-4">
@@ -12,7 +13,8 @@
         </div>
     @endif
 
-    <div class="max-w-7xl mx-4 bg-white p-6 rounded-lg shadow-lg">
+    <div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Tambah Kursi</h2>
         <form method="POST" action="{{ route('seats.store') }}">
             @csrf
             <div class="mb-4">
@@ -21,7 +23,7 @@
             </div>
             
             <div class="mb-4">
-                <label for="price" class="block text-sm font-medium text-gray-700">Harga:</label>
+                <label for="formatted_price" class="block text-sm font-medium text-gray-700">Harga:</label>
                 <input type="text" id="formatted_price" required
                     class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     oninput="formatPrice(this)">
@@ -30,25 +32,26 @@
             
             <div>
                 <button type="submit"
-                    class="w-full bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Simpan</button>
+                    class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Simpan</button>
             </div>
         </form>
     </div>
+
     <script>
         function formatPrice(input) {
             // Hapus semua karakter non-digit
             let value = input.value.replace(/\D/g, '');
-    
+
             // Jika angka kurang dari 4 digit, kalikan dengan 1.000
             if (value.length > 0 && value.length <= 3) {
                 value = (parseInt(value) * 1000).toString();
             }
-    
+
             // Tambahkan format ribuan untuk tampilan
             input.value = new Intl.NumberFormat('id-ID').format(value);
-    
+
             // Simpan nilai mentah ke hidden input
             document.getElementById('price').value = value;
         }
     </script>
-</x-layout>
+</x-new-layout>
