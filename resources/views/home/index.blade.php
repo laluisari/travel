@@ -1,4 +1,4 @@
-<x-layout>
+<x-new-layout>
     {{-- <x-slot:title>{{ $title }}</x-slot:title> --}}
 
     <div class="max-w-7xl mx-auto my-8 space-y-6">
@@ -186,4 +186,4 @@
             </div>
         </div>
     </div>
-</x-layout>
+</x-new-layout>

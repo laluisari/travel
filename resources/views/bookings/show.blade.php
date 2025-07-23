@@ -1,4 +1,4 @@
-<x-layout>
+<x-new-layout>
     <x-slot:title>{{ $title }}</x-slot:title>
 
     <div class="max-w-7xl mx-auto my-8 bg-white rounded-xl shadow-md overflow-hidden">
@@ -150,4 +150,4 @@
             </div>
         </div>
     </div>
-</x-layout>
+</x-new-layout>

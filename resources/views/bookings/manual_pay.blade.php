@@ -1,4 +1,4 @@
-<x-layout>
+<x-new-layout>
     <x-slot:title>Detail Kursi</x-slot:title>
 
     <!-- Display Validation Errors -->
@@ -80,7 +80,6 @@
                 <div class="mb-6">
                     <!-- Layout Kursi -->
                     <div class="border border-gray-300 rounded-lg p-6 mb-4">
-                        <!-- Supir -->
                         <div class="flex justify-end mb-8">
                             <div class="w-16 h-16 bg-gray-700 rounded-md flex items-center justify-center text-white">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none"
@@ -91,7 +90,6 @@
                             </div>
                         </div>
 
-                        <!-- Kursi -->
                         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                             @foreach ($scheduleData['travel_seats'] as $seat)
                                 <div class="flex justify-center">
@@ -138,6 +136,21 @@
                     </div>
                 </div>
 
+                <!-- Pilih Metode Pembayaran -->
+                <div class="mb-6">
+                    <h2 class="text-xl font-bold mb-4">Pilih Metode Pembayaran</h2>
+                    <div class="flex items-center space-x-4">
+                        <label class="flex items-center">
+                            <input type="radio" name="payment_method" value="transfer" class="form-radio h-5 w-5 text-indigo-600" required>
+                            <span class="ml-2">Transfer</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="payment_method" value="cash" class="form-radio h-5 w-5 text-indigo-600" required>
+                            <span class="ml-2">Cash</span>
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Data Pemesan -->
                 <div class="mb-6">
                     <h3 class="text-xl font-bold mb-4">Data Pemesan</h3>
@@ -164,10 +177,8 @@
                                 value="{{ old('no_wa') }}">
                         </div>
 
-                        
                     </div>
                 </div>
-
 
                 <div>
                     <button type="submit" id="continue-button" disabled
@@ -188,7 +199,6 @@
             const selectedSeatsText = document.getElementById('selected-seats-text');
             const totalSeatInput = document.getElementById('total_seat');
             const totalPriceInput = document.getElementById('total_price');
-
 
             // Function to update the display
             function updateDisplay() {
@@ -246,7 +256,6 @@
                 });
             });
 
-
             // Form submission
             document.getElementById('booking-form').addEventListener('submit', function(e) {
                 const selectedSeats = document.querySelectorAll('.seat-checkbox:checked');
@@ -257,18 +266,8 @@
                     return false;
                 }
 
-                // Validate password if create account is checked
-                if (createAccountCheckbox.checked) {
-                    if (passwordInput.value.length < 8) {
-                        e.preventDefault();
-                        alert('Password harus memiliki minimal 8 karakter.');
-                        return false;
-                    }
-
-                }
-
                 return true;
             });
         });
     </script>
-</x-layout>
+</x-new-layout>
