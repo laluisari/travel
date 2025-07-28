@@ -145,6 +145,7 @@ class BookingController extends Controller
                 ]);
                 $travelSeat = TravelSeat::where('schedule_id', $booking->schedule_id)->where('id', $travelSeatId)->first();
                 $travelSeat->update(['status' => 'booked']);
+
             }
 
             $midtransResponse = $this->midtransService->createTransaction($booking, $request->bank);
