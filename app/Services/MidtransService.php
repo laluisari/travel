@@ -1,11 +1,9 @@
 <?php
-
 namespace App\Services;
 
 use Midtrans\Config;
 use Midtrans\CoreApi;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Request;
 
 class MidtransService
 {
@@ -35,11 +33,10 @@ class MidtransService
                     'bank' => $bank // Bank yang dipilih oleh pengguna
                 ],
                 'expiry' => [
-                    'start_time' => date('Y-m-d H:i:s T'), // Waktu mulai
-                    'unit' => 'hours', // Satuan waktu (hours/days)
-                    'duration' => 24, // Durasi expired (contoh: 24 jam)
+                    'start_time' => date('Y-m-d H:i:s T'),
+                    'unit' => 'hours',
+                    'duration' => 24,
                 ],
-
             ];
 
             // Kirim request ke Midtrans
@@ -54,20 +51,53 @@ class MidtransService
                 'gross_amount' => $response->gross_amount,
                 'transaction_status' => $response->transaction_status,
                 'transaction_time' => $response->transaction_time,
-                'expiry_time' => $response->expiry_time ?? null, // Ambil waktu expired
-
+                'expiry_time' => $response->expiry_time ?? null,
             ];
         } catch (\Exception $e) {
             Log::error('Midtrans Transaction Error: ' . $e->getMessage());
 
             return [
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ];
         }
     }
 
-    private function prepareItemDetails($booking)
+    public function createSnapToken($booking)
+    {
+        try {
+            $params = [
+                'transaction_details' => [
+                    'order_id' => $booking->booking_code,
+                    'gross_amount' => $booking->total_price,
+                ],
+                'customer_details' => [
+                    'first_name' => $booking->customer->name,
+                    'email' => $booking->customer->email,
+                ],
+                'item_details' => $this->prepareItemDetails($booking), // Menyiapkan rincian item
+            ];
+
+
+            // Menggunakan Midtrans SDK untuk membuat Snap Token
+            $snapToken = \Midtrans\Snap::getSnapToken($params);
+
+            return [
+                'success' => true,
+                'snap_token' => $snapToken,
+                'transaction_id' => $booking->booking_code,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Midtrans Snap Token Error: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function prepareItemDetails($booking)
     {
         $itemDetails = [];
 
@@ -99,7 +129,7 @@ class MidtransService
 
             return [
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ];
         }
     }

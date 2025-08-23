@@ -13,8 +13,8 @@ use App\Models\Schedule;
 use App\Models\TravelSeat;
 use Illuminate\Http\Request;
 use App\Services\MidtransService;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ResponseResource;
 use Illuminate\Support\Facades\Validator;
@@ -145,7 +145,6 @@ class BookingController extends Controller
                 ]);
                 $travelSeat = TravelSeat::where('schedule_id', $booking->schedule_id)->where('id', $travelSeatId)->first();
                 $travelSeat->update(['status' => 'booked']);
-
             }
 
             $midtransResponse = $this->midtransService->createTransaction($booking, $request->bank);
@@ -235,7 +234,6 @@ class BookingController extends Controller
                 'locations' => $locations,
                 'schedules' => [], // Kosongkan hasil pencarian
             ])->withErrors($validator);
-        
         }
 
         $date = $request->query('date');
@@ -327,33 +325,27 @@ class BookingController extends Controller
                 return new ResponseResource(false, 'Booking not found', null, 404);
             }
 
-            // Update status transaksi di database
-            if ($transactionStatus == 'settlement') {
-                $booking->update(['status' => 'paid']);
-                Payment::where('booking_id', $booking->id)->update(['status' => 'paid']);
-
-                // Update status kursi menjadi 'paid'
-                TravelSeat::where('schedule_id', $booking->schedule_id)
-                    ->whereIn('id', $booking->bookingSeats->pluck('travel_seat_id'))
-                    ->update(['status' => 'paid']);
-            } elseif ($transactionStatus == 'pending') {
-                $booking->update(['status' => 'pending']);
-                Payment::where('booking_id', $booking->id)->update(['status' => 'pending']);
-
-                // Update status kursi menjadi 'booked'
-                TravelSeat::where('schedule_id', $booking->schedule_id)
-                    ->whereIn('id', $booking->bookingSeats->pluck('travel_seat_id'))
-                    ->update(['status' => 'booked']);
-            } elseif ($transactionStatus == 'expire' || $transactionStatus == 'cancel') {
-                $booking->update(['status' => 'failed']);
-                Payment::where('booking_id', $booking->id)->update(['status' => 'failed']);
-
-                // Update status kursi menjadi 'available'
-                TravelSeat::where('schedule_id', $booking->schedule_id)
-                    ->whereIn('id', $booking->bookingSeats->pluck('travel_seat_id'))
-                    ->update(['status' => 'available']);
-            } else {
-                Log::warning("Unhandled transaction status: {$transactionStatus}");
+            // Pindahkan update logika ke switch-case untuk lebih mudah dikontrol
+            switch ($transactionStatus) {
+                case 'settlement':
+                    $booking->update(['status' => 'paid']);
+                    Payment::where('booking_id', $booking->id)->update(['status' => 'paid']);
+                    $this->updateSeatStatus($booking, 'paid');
+                    break;
+                case 'pending':
+                    $booking->update(['status' => 'pending']);
+                    Payment::where('booking_id', $booking->id)->update(['status' => 'pending']);
+                    $this->updateSeatStatus($booking, 'booked');
+                    break;
+                case 'expire':
+                case 'cancel':
+                    $booking->update(['status' => 'failed']);
+                    Payment::where('booking_id', $booking->id)->update(['status' => 'failed']);
+                    $this->updateSeatStatus($booking, 'available');
+                    break;
+                default:
+                    Log::warning("Unhandled transaction status: {$transactionStatus}");
+                    break;
             }
 
             // Log webhook data
@@ -364,6 +356,14 @@ class BookingController extends Controller
             Log::error('Error handling webhook: ' . $e->getMessage());
             return new ResponseResource(false, 'Failed to handle webhook', $e->getMessage(), 500);
         }
+    }
+
+    // Metode untuk update status kursi
+    private function updateSeatStatus($booking, $newStatus)
+    {
+        TravelSeat::where('schedule_id', $booking->schedule_id)
+            ->whereIn('id', $booking->bookingSeats->pluck('travel_seat_id'))
+            ->update(['status' => $newStatus]);
     }
 
     public function view_manual_pay(Request $request, $id)
@@ -503,5 +503,216 @@ class BookingController extends Controller
             return redirect()->back()
                 ->with('error', 'Terjadi kesalahan saat membuat pemesanan: ' . $e->getMessage());
         }
+    }
+
+
+    //payment v.2
+    public function createSnapToken2(Request $request)
+    {
+        $customerId = auth('customer_api')->id();
+
+        // Validasi input 
+        $validator = Validator::make($request->all(), [
+            'total_seat' => 'required|integer',
+            'total_price' => 'required|numeric',
+            'schedule_id' => 'required|exists:schedules,id',
+            'booking_seat_ids' => 'required|array',
+            'booking_seat_ids.*' => 'required|exists:travel_seats,id',
+            'bank' => 'required|in:bri,bca,mandiri,bni,permata'
+        ], [
+            'schedule_id.required' => 'Schedule ID is required',
+            'schedule_id.exists' => 'Schedule ID does not exist',
+            'booking_seat_ids.required' => 'Booking seats are required',
+            'booking_seat_ids.array' => 'Booking seats must be an array',
+            'booking_seat_ids.*.required' => 'Each travel seat ID is required',
+            'booking_seat_ids.*.exists' => 'Travel seat ID does not exist',
+        ]);
+
+        if ($validator->fails()) {
+            return new ResponseResource(false, 'Validation error', $validator->errors(), 422);
+        }
+
+        // Validasi double booking
+        $existingBooking = Booking::where('customer_id', $customerId)
+            ->where('schedule_id', $request->schedule_id)
+            ->whereIn('status', ['pending', 'paid'])
+            ->whereHas('bookingSeats', function ($query) use ($request) {
+                $query->whereIn('travel_seat_id', $request->booking_seat_ids);
+            })
+            ->first();
+
+        if ($existingBooking) {
+            $payment = Payment::where('booking_id', $existingBooking->id)->first();
+            return new ResponseResource(
+                false,
+                'You already have a pending booking for the selected seats.',
+                ['bank' => $payment->bank, 'va' => $payment->virtual_account, 'status' => $payment->status],
+                422
+            );
+        }
+
+        DB::beginTransaction(); // Mulai transaksi database
+
+        try {
+            // Buat data booking
+            $booking = Booking::create([
+                'booking_code' => bookingCode($customerId),
+                'customer_id' => $customerId,
+                'schedule_id' => $request->schedule_id,
+                'total_seat' => $request->total_seat,
+                'total_price' => $request->total_price,
+                'status' => 'pending'
+            ]);
+
+            foreach ($request->booking_seat_ids as $travelSeatId) {
+                $booking->bookingSeats()->create([
+                    'travel_seat_id' => $travelSeatId,
+                ]);
+                $travelSeat = TravelSeat::where('schedule_id', $booking->schedule_id)->where('id', $travelSeatId)->first();
+                $travelSeat->update(['status' => 'booked']);
+            }
+
+            $midtransResponse = $this->midtransService->createSnapToken($booking, $request->bank);
+
+            if ($midtransResponse['success']) {
+                $booking->update([
+                    'midtrans_transaction_id' => $midtransResponse['transaction_id']
+                ]);
+
+                // Simpan data payment
+                $payment = Payment::create([
+                    'booking_id' => $booking->id,
+                    'virtual_account' => $midtransResponse['va_numbers'][0]->va_number,
+                    'bank' => $midtransResponse['va_numbers'][0]->bank,
+                    'status' => 'pending'
+                ]);
+
+                DB::commit();
+
+                return new ResponseResource(true, 'Snap token created successfully', [
+                    'snap_token' => $midtransResponse['snap_token'], // Pastikan untuk menambahkan snap_token di sini
+                    'booking_code' => $booking->booking_code,
+                    'transaction_status' => $midtransResponse['transaction_status'],
+                    'transaction_time' => $midtransResponse['transaction_time'],
+                    'transaction_id' => $midtransResponse['transaction_id'],
+                    'gross_amount' => $midtransResponse['gross_amount'],
+                    'expiry_time' => $midtransResponse['expiry_time'],
+                ], 201);
+            } else {
+                // Hapus booking jika transaksi gagal
+                $booking->delete();
+                DB::rollBack(); // Rollback transaksi jika Midtrans gagal
+
+                return new ResponseResource(false, 'Failed to create snap token', $midtransResponse, 500);
+            }
+        } catch (\Exception $e) {
+            DB::rollBack(); // Rollback transaksi jika terjadi exception
+            return new ResponseResource(false, 'Failed to create snap token', $e->getMessage(), 500);
+        }
+    }
+
+    //payment v.2 snap
+    public function createSnapToken(Request $request)
+    {
+        // Ambil data yang diperlukan dari request
+        $customerId = auth('customer_api')->id();
+
+        // Validasi input 
+        $validator = Validator::make($request->all(), [
+            'total_seat' => 'required|integer',
+            'schedule_id' => 'required|exists:schedules,id',
+            'booking_seat_ids' => 'required|array',
+            'booking_seat_ids.*' => 'required|exists:travel_seats,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        // Cek double booking kursi (pending/paid) untuk user dan schedule ini
+        $existingBooking = Booking::where('customer_id', $customerId)
+            ->where('schedule_id', $request->schedule_id)
+            ->whereIn('status', ['pending', 'paid'])
+            ->whereHas('bookingSeats', function ($query) use ($request) {
+                $query->whereIn('travel_seat_id', $request->booking_seat_ids);
+            })
+            ->first();
+
+        if ($existingBooking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You already have a pending/paid booking for one or more selected seats.',
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Buat data booking (total_price sementara 0)
+            $booking = Booking::create([
+                'booking_code' => bookingCode($customerId),
+                'customer_id' => $customerId,
+                'schedule_id' => $request->schedule_id,
+                'total_seat' => $request->total_seat,
+                'total_price' => 0,
+                'status' => 'pending'
+            ]);
+
+            $total_price = 0;
+            foreach ($request->booking_seat_ids as $travelSeatId) {
+                $booking->bookingSeats()->create([
+                    'travel_seat_id' => $travelSeatId,
+                ]);
+                $travelSeat = TravelSeat::where('schedule_id', $booking->schedule_id)->where('id', $travelSeatId)->first();
+                if ($travelSeat && $travelSeat->seat && $travelSeat->seat->price) {
+                    $total_price += $travelSeat->seat->price;
+                }
+                if ($travelSeat) {
+                    $travelSeat->update(['status' => 'booked']);
+                }
+            }
+
+            // Update total_price booking setelah semua kursi diproses
+            $booking->update(['total_price' => $total_price]);
+
+            $payment = Payment::create([
+                'booking_id' => $booking->id,
+                'virtual_account' => $midtransResponse['va_numbers'][0]->va_number ?? null,
+                'bank' => $midtransResponse['va_numbers'][0]->bank ?? null,
+                'status' => 'pending',
+                'payment_type' => $midtransResponse['payment_type'] ?? 'bank_transfer',
+                'transaction_time' => $midtransResponse['transaction_time'] ?? now(),
+                'expiry_time' => $midtransResponse['expiry_time'] ?? null,
+                'amount' => $midtransResponse['gross_amount'] ?? $booking->total_price,
+            ]);
+
+
+            Log::info('Booking Created', [
+                'booking_code' => $booking->booking_code,
+                'total_price' => $booking->total_price,
+                'total_seat' => $booking->total_seat,
+            ]);
+
+            // Panggil fungsi createSnapToken di MidtransService
+            $response = $this->midtransService->createSnapToken($booking);
+            DB::commit();
+            return response()->json($response);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Failed to create snap token', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function snapTest(Request $request)
+    {
+        // Ambil snap_token dari query string
+        $snapToken = "edf9e28f-d36c-43b9-913f-cfa5867884a0";
+
+        // Pastikan token ada, jika tidak, bisa memberikan pesan error
+        if (!$snapToken) {
+            return abort(400, 'Snap token is required.');
+        }
+
+        // Kirim token ke view
+        return view('snap', compact('snapToken'));
     }
 }

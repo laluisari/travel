@@ -41,3 +41,4 @@ Route::middleware('auth')->group(function () {
 Route::get('login', [AuthController::class, 'adminLoginView'])->name('login');
 Route::post('admin/login', [AuthController::class, 'adminLogin'])->name('admin.login');
 Route::post('/admin/logout', [AuthController::class, 'adminLogout'])->name('admin.logout');
+Route::get('/midtrans/snap-test', [BookingController::class, 'snapTest'])->name('midtrans.snap.test');

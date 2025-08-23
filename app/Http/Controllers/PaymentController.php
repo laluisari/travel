@@ -80,7 +80,7 @@ class PaymentController extends Controller
     {
         try {
             $customerId = auth('customer_api')->id();
-    
+                
             // Ambil data payments berdasarkan customer_id di tabel bookings
             $payments = Payment::whereHas('booking', function ($query) use ($customerId) {
                 $query->where('customer_id', $customerId);

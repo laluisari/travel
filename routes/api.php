@@ -27,8 +27,12 @@ Route::middleware('auth.api')->group(function () {
     Route::post('bookings', [BookingController::class, 'store']);
     Route::get('bookings', [BookingController::class, 'index2']);
 
+    Route::post('create-snap-token', [BookingController::class, 'createSnapToken']);
+
     //payment
     Route::get('history_payment_customer', [PaymentController::class, 'history_payment_customer']);
+
+
 });
 
 
@@ -53,6 +57,7 @@ Route::get('schedules/{id}', [ScheduleController::class, 'show2']);
 Route::get('search_schedule', [ScheduleController::class, 'search_schedule']);
 
 Route::post('/midtrans/webhook', [BookingController::class, 'handleWebhook']);
+
 
 Route::post('/login', [AuthController::class, 'customerLogin']);
 Route::post('/register', [AuthController::class, 'customerRegister']);

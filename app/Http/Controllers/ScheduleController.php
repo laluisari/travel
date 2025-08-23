@@ -169,6 +169,11 @@ class ScheduleController extends Controller
             ->where('schedule_id', $schedule->id) // Filter berdasarkan schedule_id
             ->get();
 
+        // Urutkan kursi berdasarkan harga dari termurah ke termahal
+        $sortedSeats = $travelSeats->sortBy(function ($travelSeat) {
+            return $travelSeat->seat->price ?? PHP_INT_MAX;
+        })->values();
+
         return new ResponseResource(true, "Detail schedule", [
             'id' => $schedule->id,
             'date' => $schedule->date,
@@ -176,11 +181,12 @@ class ScheduleController extends Controller
             'from' => $schedule->route->fromLocation->name,
             'to' => $schedule->route->toLocation->name,
             'travel_name' => $schedule->travel->name,
-            'travel_seats' => $travelSeats->map(function ($travelSeat) {
+            'travel_seats' => $sortedSeats->map(function ($travelSeat) {
                 return [
                     'id' => $travelSeat->id,
                     'seat_number' => $travelSeat->seat->seat_number ?? null, // Pastikan seat_number tidak error jika null
                     'status' => $travelSeat->status, // Jika ada kolom status di tabel pivot
+                    'price' => $travelSeat->seat->price ?? null, // Ambil harga dari seat jika ada
                 ];
             }),
         ], 200);
