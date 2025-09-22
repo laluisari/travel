@@ -416,6 +416,10 @@ class BookingController extends Controller
             'booking_seat_ids.*' => 'exists:travel_seats,id',
             'total_seat' => 'required|numeric|min:1',
             'total_price' => 'required|numeric|min:1',
+            'payment_method' => 'required|in:cash,qris,transfer',
+            'name' => 'nullable|string|max:255',
+            'email' => 'nullable|email',
+            'no_wa' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -431,32 +435,17 @@ class BookingController extends Controller
             return redirect()->back()->with('error', 'Beberapa kursi yang Anda pilih sudah tidak tersedia. Silakan pilih kursi lain.');
         }
 
-        // Ambil customer_id dari user yang login (jika ada)
-        $userId = auth()->check() ? auth()->user()->id : null;
+        // Ambil user_id dari user yang login (jika ada)
+        $userId = \Illuminate\Support\Facades\Auth::check() ? \Illuminate\Support\Facades\Auth::user()->id : null;
 
         DB::beginTransaction();
 
         try {
+            // Find or create customer
+            $customer = $this->findOrCreateCustomer($request);
 
-            $customer = null;
-
-            if ($request->email) {
-                $customer = Customer::where('email', $request->email)->first();
-            }
-            if (!$customer && $request->no_wa) {
-                $customer = Customer::where('no_wa', $request->no_wa)->first();
-            }
-
-            if (!$customer) {
-                $customer = Customer::create([
-                    'name' => $request->name,
-                    'email' => $request->email ?? null,
-                    'password' => null,
-                    'no_wa' => $request->no_wa ?? null,
-                    'type' => 'offline',
-                ]);
-            }
-
+            // Tentukan status booking berdasarkan payment method
+            $bookingStatus = $request->payment_method === 'cash' ? 'paid' : 'pending';
 
             // Buat booking
             $booking = Booking::create([
@@ -465,7 +454,7 @@ class BookingController extends Controller
                 'schedule_id' => $request->schedule_id,
                 'total_seat' => $request->total_seat,
                 'total_price' => $request->total_price,
-                'status' => 'paid',
+                'status' => $bookingStatus,
                 'user_id' => $userId,
             ]);
 
@@ -483,28 +472,173 @@ class BookingController extends Controller
                 $travelSeat->update(['status' => 'booked']);
             }
 
-            // Buat payment (untuk demo, langsung set paid)
-            $payment = Payment::create([
-                'booking_id' => $booking->id,
-                'virtual_account' => null,
-                'bank' => 'cash',
-                'status' => 'paid'
-            ]);
-
-
+            // Handle payment berdasarkan method
+            $paymentResult = $this->handlePaymentMethod($request, $booking);
 
             DB::commit();
 
-            return redirect()->route('bookings.show', $booking->id)
-                ->with('success', 'Pemesanan berhasil dibuat!');
+            // Return response berdasarkan payment method
+            return $this->handlePaymentResponse($request->payment_method, $paymentResult, $booking);
+
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Manual booking error: ' . $e->getMessage());
 
             return redirect()->back()
                 ->with('error', 'Terjadi kesalahan saat membuat pemesanan: ' . $e->getMessage());
         }
     }
 
+    private function findOrCreateCustomer(Request $request)
+    {
+        $customer = null;
+
+        if ($request->email) {
+            $customer = Customer::where('email', $request->email)->first();
+        }
+        
+        if (!$customer && $request->no_wa) {
+            $customer = Customer::where('no_wa', $request->no_wa)->first();
+        }
+
+        if (!$customer) {
+            $customer = Customer::create([
+                'name' => $request->name,
+                'email' => $request->email ?? null,
+                'password' => null,
+                'no_wa' => $request->no_wa ?? null,
+                'type' => 'offline',
+            ]);
+        }
+
+        return $customer;
+    }
+
+    private function handlePaymentMethod(Request $request, Booking $booking)
+    {
+        switch ($request->payment_method) {
+            case 'cash':
+                return $this->processCashPayment($booking);
+            
+            case 'qris':
+                return $this->processQrisPayment($booking);
+            
+            case 'transfer':
+                return $this->processTransferPayment($booking, $request->bank ?? 'bca');
+            
+            default:
+                throw new \Exception('Invalid payment method');
+        }
+    }
+
+    private function processCashPayment(Booking $booking)
+    {
+        $payment = Payment::create([
+            'booking_id' => $booking->id,
+            'virtual_account' => null,
+            'bank' => null,
+            'payment_type' => 'cash',
+            'status' => 'paid'
+        ]);
+
+        return [
+            'success' => true,
+            'type' => 'cash',
+            'payment' => $payment
+        ];
+    }
+
+    private function processQrisPayment(Booking $booking)
+    {
+        $qrisResponse = $this->midtransService->createQrisTransaction($booking);
+
+        if ($qrisResponse['success']) {
+            $payment = Payment::create([
+                'booking_id' => $booking->id,
+                'virtual_account' => null,
+                'bank' => null,
+                'payment_type' => 'qris',
+                'qr_code_url' => $qrisResponse['qr_code_url'],
+                'qris_data' => json_encode($qrisResponse),
+                'status' => 'pending',
+                'transaction_time' => now(),
+                'expiry_time' => now()->addMinutes(15),
+                'amount' => $booking->total_price
+            ]);
+
+            // Log untuk debugging
+            Log::info('QRIS Payment Created: ', [
+                'booking_code' => $booking->booking_code,
+                'transaction_id' => $qrisResponse['transaction_id'],
+                'qr_code_url' => $qrisResponse['qr_code_url']
+            ]);
+
+            return [
+                'success' => true,
+                'type' => 'qris',
+                'payment' => $payment,
+                'qr_code_url' => $qrisResponse['qr_code_url'],
+                'transaction_id' => $qrisResponse['transaction_id'],
+                'full_response' => $qrisResponse
+            ];
+        }
+
+        throw new \Exception('Failed to generate QRIS: ' . $qrisResponse['message']);
+    }
+
+    private function processTransferPayment(Booking $booking, $bank)
+    {
+        $transferResponse = $this->midtransService->createTransaction($booking, $bank);
+
+        if ($transferResponse['success']) {
+            $payment = Payment::create([
+                'booking_id' => $booking->id,
+                'virtual_account' => $transferResponse['va_numbers'][0]->va_number,
+                'bank' => $transferResponse['va_numbers'][0]->bank,
+                'payment_type' => 'bank_transfer',
+                'status' => 'pending',
+                'transaction_time' => now(),
+                'expiry_time' => now()->addHours(24),
+                'amount' => $booking->total_price
+            ]);
+
+            return [
+                'success' => true,
+                'type' => 'transfer',
+                'payment' => $payment,
+                'va_numbers' => $transferResponse['va_numbers']
+            ];
+        }
+
+        throw new \Exception('Failed to generate Virtual Account: ' . $transferResponse['message']);
+    }
+
+    private function handlePaymentResponse($paymentMethod, $paymentResult, Booking $booking)
+    {
+        switch ($paymentMethod) {
+            case 'cash':
+                return redirect()->route('bookings.show', $booking->id)
+                    ->with('success', 'Pemesanan berhasil dibuat! Pembayaran cash telah diterima.');
+
+            case 'qris':
+                return view('bookings.payment_qris', [
+                    'title' => 'Pembayaran QRIS',
+                    'booking' => $booking,
+                    'qr_code_url' => $paymentResult['qr_code_url'],
+                    'transaction_id' => $paymentResult['transaction_id']
+                ]);
+
+            case 'transfer':
+                return view('bookings.payment_transfer', [
+                    'title' => 'Pembayaran Transfer',
+                    'booking' => $booking,
+                    'va_numbers' => $paymentResult['va_numbers']
+                ]);
+
+            default:
+                throw new \Exception('Invalid payment response type');
+        }
+    }
 
     //payment v.2
     public function createSnapToken2(Request $request)
@@ -705,7 +839,7 @@ class BookingController extends Controller
     public function snapTest(Request $request)
     {
         // Ambil snap_token dari query string
-        $snapToken = "edf9e28f-d36c-43b9-913f-cfa5867884a0";
+        $snapToken = "00d1766e-906d-4a21-8673-2274ea0a273e";
 
         // Pastikan token ada, jika tidak, bisa memberikan pesan error
         if (!$snapToken) {

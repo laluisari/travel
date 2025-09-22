@@ -139,14 +139,27 @@
                 <!-- Pilih Metode Pembayaran -->
                 <div class="mb-6">
                     <h2 class="text-xl font-bold mb-4">Pilih Metode Pembayaran</h2>
-                    <div class="flex items-center space-x-4">
-                        <label class="flex items-center">
-                            <input type="radio" name="payment_method" value="transfer" class="form-radio h-5 w-5 text-indigo-600" required>
-                            <span class="ml-2">Transfer</span>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="payment_method" value="qris" class="form-radio h-5 w-5 text-indigo-600" required>
+                            <div class="ml-3">
+                                <span class="block font-medium">QRIS</span>
+                                <span class="text-sm text-gray-500">Scan QR Code untuk bayar</span>
+                            </div>
                         </label>
-                        <label class="flex items-center">
+                        <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="payment_method" value="transfer" class="form-radio h-5 w-5 text-indigo-600" required>
+                            <div class="ml-3">
+                                <span class="block font-medium">Transfer Bank</span>
+                                <span class="text-sm text-gray-500">Virtual Account</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
                             <input type="radio" name="payment_method" value="cash" class="form-radio h-5 w-5 text-indigo-600" required>
-                            <span class="ml-2">Cash</span>
+                            <div class="ml-3">
+                                <span class="block font-medium">Cash</span>
+                                <span class="text-sm text-gray-500">Bayar tunai langsung</span>
+                            </div>
                         </label>
                     </div>
                 </div>
@@ -158,21 +171,21 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label for="name" class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
-                            <input type="text" name="name" id="name" required
+                            <input type="text" name="name" id="name" 
                                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                 value="{{ old('name') }}">
                         </div>
 
                         <div>
                             <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                            <input type="email" name="email" id="email" required
+                            <input type="email" name="email" id="email"
                                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                 value="{{ old('email') }}">
                         </div>
 
                         <div>
                             <label for="no_wa" class="block text-sm font-medium text-gray-700">Nomor WhatsApp</label>
-                            <input type="tel" name="no_wa" id="no_wa" required
+                            <input type="tel" name="no_wa" id="no_wa"
                                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                 value="{{ old('no_wa') }}">
                         </div>

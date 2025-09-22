@@ -114,6 +114,55 @@ class MidtransService
         return $itemDetails;
     }
 
+    public function createQrisTransaction($booking)
+    {
+        try {
+            $params = [
+                'payment_type' => 'qris',
+                'transaction_details' => [
+                    'order_id' => $booking->booking_code,
+                    'gross_amount' => $booking->total_price
+                ],
+                'customer_details' => [
+                    'first_name' => $booking->customer->name,
+                    'email' => $booking->customer->email ?? 'test@example.com',
+                ],
+                'item_details' => $this->prepareItemDetails($booking),
+                'qris' => [
+                    'acquirer' => 'gopay' // atau 'airpay_shopee'
+                    // 'acquirer' => 'gopay' // atau 'airpay_shopee'
+                ]
+            ];
+
+            // Kirim request ke Midtrans
+            $response = CoreApi::charge($params);
+
+            // Log response untuk debugging
+            Log::info('QRIS Response: ', (array) $response);
+
+            return [
+                'success' => true,
+                'transaction_id' => $response->transaction_id,
+                'payment_type' => $response->payment_type,
+                'qr_code_url' => $response->actions[0]->url ?? null,
+                'qr_string' => $response->qr_string ?? null, // String untuk simulator
+                'merchant_id' => $response->merchant_id,
+                'gross_amount' => $response->gross_amount,
+                'transaction_status' => $response->transaction_status,
+                'transaction_time' => $response->transaction_time,
+                'expiry_time' => $response->expiry_time ?? null,
+                'full_response' => $response, // Untuk debugging
+            ];
+        } catch (\Exception $e) {
+            Log::error('Midtrans QRIS Transaction Error: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
     public function checkTransactionStatus($orderId)
     {
         try {

@@ -16,6 +16,10 @@ Route::fallback(function () {
     return response()->json(['status' => false, 'message' => 'Not Found!'], 404);
 });
 
+// Public routes untuk payment status check
+Route::get('payment-status/{orderId}', [PaymentController::class, 'checkStatus']);
+Route::post('midtrans/webhook', [PaymentController::class, 'webhook']);
+
 Route::middleware('auth.api')->group(function () {
     //users
     Route::get('users/{id}', [UserController::class, 'show']);
